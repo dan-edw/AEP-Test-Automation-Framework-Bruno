@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4143 - List schemas
   type: http
-  seq: 1
+  seq: 3
 
 http:
   method: GET

@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4145 - Retrieve a field group
   type: http
-  seq: 1
+  seq: 5
 
 http:
   method: GET

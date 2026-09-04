@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4142 - List field groups
   type: http
-  seq: 1
+  seq: 2
 
 http:
   method: GET

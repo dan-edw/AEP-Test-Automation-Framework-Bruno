@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4144 - Retrieve a schema
   type: http
-  seq: 1
+  seq: 4
 
 http:
   method: GET

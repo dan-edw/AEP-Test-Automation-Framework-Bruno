@@ -11,20 +11,29 @@ http:
       value: client_credentials
       type: query
     - name: client_id
-      value: "{{AEP_CLIENT_ID}}"
+      value: "{{API_KEY}}"
       type: query
     - name: client_secret
-      value: "{{AEP_CLIENT_SECRET}}"
+      value: "{{CLIENT_SECRET}}"
       type: query
     - name: scope
-      value: "{{AEP_SCOPE}}"
+      value: "{{SCOPES}}"
       type: query
 
 runtime:
   scripts:
+    - type: before-request
+      code: |-
+        console.log("AEP_CLIENT_ID exists:", !!bru.getVar("AEP_CLIENT_ID"));
+        console.log("AEP_CLIENT_SECRET exists:", !!bru.getVar("AEP_CLIENT_SECRET"));
+        console.log("AEP_SCOPE exists:", !!bru.getVar("AEP_SCOPE"));
+
+        console.log("AEP_CLIENT_ID length:", bru.getVar("AEP_CLIENT_ID")?.length);
+        console.log("AEP_CLIENT_SECRET length:", bru.getVar("AEP_CLIENT_SECRET")?.length);
+        console.log("AEP_SCOPE length:", bru.getVar("AEP_SCOPE")?.length);
     - type: after-response
       code: |-
-        const response = res.getBody(); 
+        const response = res.getBody();
 
         test("Authentication successful", function () {
           expect(res.getStatus()).to.equal(200);
@@ -35,11 +44,10 @@ runtime:
         });
 
         if (response.access_token) {
-          bru.setEnvVar("ACCESS_TOKEN", response.access_token);
-
+          bru.setVar("ACCESS_TOKEN", response.access_token);
           console.log("ACCESS_TOKEN successfully stored.");
-          console.log("Token exists:", !!bru.getEnvVar("ACCESS_TOKEN"));
-          console.log("Token length:", bru.getEnvVar("ACCESS_TOKEN")?.length);
+          console.log("Token exists:", !!bru.getVar("ACCESS_TOKEN"));
+          console.log("Token length:", bru.getVar("ACCESS_TOKEN")?.length);
         } else {
           throw new Error("Unable to acquire ACCESS_TOKEN.");
         }
