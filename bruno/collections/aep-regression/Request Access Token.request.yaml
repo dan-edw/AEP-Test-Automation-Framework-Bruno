@@ -11,13 +11,13 @@ http:
       value: client_credentials
       type: query
     - name: client_id
-      value: "{{API_KEY}}"
+      value: "{{AEP_CLIENT_ID}}"
       type: query
     - name: client_secret
-      value: "{{CLIENT_SECRET}}"
+      value: "{{AEP_CLIENT_SECRET}}"
       type: query
     - name: scope
-      value: "{{SCOPES}}"
+      value: "{{AEP_SCOPE}}"
       type: query
 
 runtime:
