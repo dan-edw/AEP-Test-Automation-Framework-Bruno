@@ -1,0 +1,47 @@
+info:
+  name: CUTECH-4145 - Retrieve a field group
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://platform.adobe.io/data/foundation/schemaregistry/:CONTAINER_ID/fieldgroups/:FIELD_GROUP_ID
+  headers:
+    - name: Accept
+      value: application/vnd.adobe.xed-id+json
+    - name: Content-Type
+      value: application/json
+    - name: x-api-key
+      value: "{{API_KEY}}"
+    - name: x-gw-ims-org-id
+      value: "{{IMS_ORG}}"
+    - name: x-sandbox-name
+      value: "{{SANDBOX_NAME}}"
+  params:
+    - name: CONTAINER_ID
+      value: "{{CONTAINER_ID}}"
+      type: path
+    - name: FIELD_GROUP_ID
+      value: "{{FIELD_GROUP_ID}}"
+      type: path
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const token = bru.getVar("ACCESS_TOKEN");
+
+        if (!token) {
+          throw new Error("ACCESS_TOKEN is not available");
+        }
+
+        req.setHeader("Authorization", `Bearer ${token}`);
+
+        console.log("Authorization header set.");
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

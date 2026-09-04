@@ -1,0 +1,665 @@
+name: AEP API Regression
+
+on:
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Test Environment
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - uat
+          - prod
+
+  push:
+    branches:
+      - main
+      - Updates
+
+  pull_request:
+    branches:
+      - main
+      - Updates
+
+
+jobs:
+
+  test:
+
+    name: Run AEP API Regression
+
+    runs-on: ubuntu-latest
+
+    # Use the selected GitHub environment.
+    # For push/PR, default to dev.
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    timeout-minutes: 30
+
+
+    steps:
+
+      # ----------------------------------------
+      # 1. Checkout repository
+      # ----------------------------------------
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      
+      # ----------------------------------------
+      # 2. Mask sensitive values
+      # ----------------------------------------
+    
+      - name: Mask sensitive values
+        shell: bash
+        env:
+          AEP_CLIENT_ID: ${{ secrets.AEP_CLIENT_ID }}
+          AEP_CLIENT_SECRET: ${{ secrets.AEP_CLIENT_SECRET }}
+          AEP_IMS_ORG: ${{ secrets.AEP_IMS_ORG }}
+        run: |
+          echo "::add-mask::$AEP_CLIENT_ID"
+          echo "::add-mask::$AEP_CLIENT_SECRET"
+          echo "::add-mask::$AEP_IMS_ORG"
+      
+      
+      
+      # ----------------------------------------
+      # 3. Inspect Bruno files
+      # ----------------------------------------
+
+      - name: Inspect Bruno files
+        run: |
+          echo "=== Bruno files ==="
+          find bruno -maxdepth 6 -type f | sort
+
+          echo ""
+          echo "=== Collection directory ==="
+          ls -la bruno/collections/aep-regression
+
+
+      # ----------------------------------------
+      # 4. Prepare Bruno Environment
+      # ----------------------------------------
+
+      - name: Prepare Bruno Environment
+        id: environment
+        shell: bash
+        run: |
+          ENVIRONMENT="${{ github.event.inputs.environment || 'dev' }}"
+
+          echo "Running AEP API Regression against: $ENVIRONMENT"
+
+          ENV_FILE="${{ github.workspace }}/bruno/environments/${ENVIRONMENT}.json"
+
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "ERROR: Bruno environment not found: $ENV_FILE"
+            exit 1
+          fi
+
+          echo "Using Bruno environment: $ENV_FILE"
+          echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_OUTPUT"
+
+      
+      
+      # ----------------------------------------
+      # 5. Run Bruno Collection
+      # ----------------------------------------
+
+      - name: Run AEP API Regression
+        id: bruno
+        continue-on-error: true
+        uses: usebruno/bruno-cli-action@v1
+        with:
+          working-directory: bruno/collections/aep-regression
+          command: >-
+            run
+            --env-file "${{ steps.environment.outputs.ENV_FILE }}"
+            --env-var AEP_CLIENT_ID=${{ secrets.AEP_CLIENT_ID }}
+            --env-var AEP_CLIENT_SECRET=${{ secrets.AEP_CLIENT_SECRET }}
+            --env-var AEP_SCOPE=${{ secrets.AEP_SCOPE }}
+            --env-var AEP_IMS_ORG=${{ secrets.AEP_IMS_ORG }}
+            --env-var AEP_SANDBOX_NAME=${{ vars.AEP_SANDBOX_NAME }}
+            --env-var CONTAINER_ID=tenant
+            --reporter-junit test-results.xml
+            --reporter-json bruno-results.json
+            --reporter-skip-headers "Authorization"
+
+  
+      # ----------------------------------------
+      # 6. Generate Bruno Test Summary
+      # ----------------------------------------
+          
+      - name: Prepare Bruno Reports
+        if: always()
+        shell: bash
+        run: |
+          echo "=== Bruno action outputs ==="
+          echo "Exit code: ${{ steps.bruno.outputs.exit-code }}"
+          echo "Passed:    ${{ steps.bruno.outputs.passed }}"
+          echo "Failed:    ${{ steps.bruno.outputs.failed }}"
+          echo "Total:     ${{ steps.bruno.outputs.total }}"
+
+          if [ -f "bruno/collections/aep-regression/test-results.xml" ]; then
+            cp bruno/collections/aep-regression/test-results.xml test-results.xml
+          else
+            echo "ERROR: Bruno JUnit report was not created"
+            exit 1
+          fi
+
+          if [ -f "bruno/collections/aep-regression/bruno-results.json" ]; then
+            cp bruno/collections/aep-regression/bruno-results.json bruno-results.json
+          else
+            echo "WARNING: Bruno JSON report was not created"
+          fi
+
+          echo ""
+          echo "=== JUnit ==="
+          cat test-results.xml
+
+
+      
+      
+      
+      # ----------------------------------------
+      # 7. Authenticate with Xray Cloud
+      # ----------------------------------------
+      
+      - name: Authenticate with Xray Cloud
+        if: always()
+        id: xray-auth
+        shell: bash
+        run: |
+          TOKEN=$(curl -s \
+            -H "Content-Type: application/json" \
+            -X POST \
+            https://xray.cloud.getxray.app/api/v2/authenticate \
+            -d '{
+              "client_id":"${{ secrets.XRAY_CLIENT_ID }}",
+              "client_secret":"${{ secrets.XRAY_CLIENT_SECRET }}"
+            }')
+
+          TOKEN=$(echo "$TOKEN" | tr -d '"')
+
+          echo "XRAY_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+          echo "Authentication successful"
+      
+      
+      # ----------------------------------------
+      # 8. Check Xray JUnit file
+      # ----------------------------------------    
+      
+      - name: Check Xray JUnit file
+        if: always()
+        shell: bash
+        run: |
+          echo "=== Current directory ==="
+          pwd
+
+          echo "=== Files ==="
+          ls -la
+
+          echo "=== JUnit file ==="
+          if [ -f "test-results.xml" ]; then
+            echo "test-results.xml exists"
+            ls -lh test-results.xml
+            echo "=== Contents ==="
+            cat test-results.xml
+          else
+            echo "ERROR: test-results.xml does not exist"
+            exit 1
+          fi
+
+      
+      
+      # ----------------------------------------
+      # 9. Publish the Results to Xray
+      # ----------------------------------------
+
+      - name: Publish Results to Xray
+        id: publish-xray
+        if: always()
+        shell: bash
+        env:
+          XRAY_TOKEN: ${{ env.XRAY_TOKEN }}
+          XRAY_PROJECT_KEY: ${{ secrets.XRAY_PROJECT_KEY }}
+
+        run: |
+          set +e
+
+          echo "=== Publishing JUnit Results to Xray ==="
+
+          if [ -z "$XRAY_TOKEN" ]; then
+            echo "ERROR: XRAY_TOKEN is empty"
+            exit 1
+          fi
+
+          if [ -z "$XRAY_PROJECT_KEY" ]; then
+            echo "ERROR: XRAY_PROJECT_KEY is empty"
+            exit 1
+          fi
+
+          if [ ! -f "test-results.xml" ]; then
+            echo "ERROR: test-results.xml does not exist"
+            exit 1
+          fi
+
+          echo "Project: $XRAY_PROJECT_KEY"
+
+          # --------------------------------------------------
+          # Import JUnit results into Xray
+          # --------------------------------------------------
+
+          echo ""
+          echo "=== Importing JUnit results into Xray ==="
+
+          XRAY_IMPORT_URL="https://xray.cloud.getxray.app/api/v2/import/execution/junit?projectKey=${XRAY_PROJECT_KEY}"
+
+          HTTP_CODE=$(curl -s \
+            -o xray-import-response.json \
+            -w "%{http_code}" \
+            -H "Authorization: Bearer ${XRAY_TOKEN}" \
+            -H "Content-Type: text/xml" \
+            --data-binary "@$(pwd)/test-results.xml" \
+            "$XRAY_IMPORT_URL")
+
+          echo "HTTP status: $HTTP_CODE"
+
+          echo "=== Xray Import Response ==="
+          cat xray-import-response.json
+          echo ""
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Xray JUnit import failed"
+            exit 1
+          fi
+
+          # --------------------------------------------------
+          # Get Test Execution key AND internal ID
+          # directly from the import response
+          # --------------------------------------------------
+
+          XRAY_EXECUTION_KEY=$(jq -r '.key // empty' xray-import-response.json)
+          XRAY_EXECUTION_ID=$(jq -r '.id // empty' xray-import-response.json)
+       
+
+          # --------------------------------------------------
+          # Save values for Step 14
+          # --------------------------------------------------
+
+          echo "XRAY_EXECUTION_KEY=$XRAY_EXECUTION_KEY" >> "$GITHUB_OUTPUT"
+          echo "XRAY_EXECUTION_ID=$XRAY_EXECUTION_ID" >> "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "=== Xray execution information saved ==="
+          echo "Execution key: $XRAY_EXECUTION_KEY"
+          echo "Execution ID:  $XRAY_EXECUTION_ID"
+
+          echo ""
+          echo "SUCCESS: JUnit results imported into Xray"
+
+
+
+
+
+      # ----------------------------------------
+      # 10. Add actual results / failure details to Xray Test Runs
+      # ----------------------------------------
+
+      - name: Update Xray Test Run Results
+        if: ${{ false }}
+        shell: bash
+        env:
+          XRAY_TOKEN: ${{ env.XRAY_TOKEN }}
+          XRAY_EXECUTION_ID: ${{ steps.publish-xray.outputs.XRAY_EXECUTION_ID }}
+        run: |
+
+          set +e
+
+          echo "=== Updating Xray Test Run Results ==="
+          echo "Execution ID: $XRAY_EXECUTION_ID"
+
+          if [ -z "$XRAY_TOKEN" ]; then
+            echo "ERROR: XRAY_TOKEN is empty"
+            exit 1
+          fi
+
+          if [ -z "$XRAY_EXECUTION_ID" ]; then
+            echo "ERROR: XRAY_EXECUTION_ID is empty"
+            exit 1
+          fi
+
+          # --------------------------------------------------
+          # Get Test Runs
+          # --------------------------------------------------
+
+          MAX_ATTEMPTS=10
+          TEST_RUN_COUNT=0
+
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+
+            echo ""
+            echo "=== Getting Xray Test Runs (attempt $ATTEMPT/$MAX_ATTEMPTS) ==="
+
+            RUN_QUERY=$(jq -n \
+              --arg executionId "$XRAY_EXECUTION_ID" \
+              '{
+                query: (
+                  "query { getTestRuns(testExecIssueIds: [" +
+                  ($executionId | @json) +
+                  "], limit: 100, start: 0) { total results { id status { name } test { issueId jira(fields: [\"key\"]) } testExecution { issueId } } } }"
+                )
+              }')
+
+            echo "Test Run GraphQL request:"
+            echo "$RUN_QUERY"
+
+            HTTP_CODE=$(curl -s \
+              -o xray-test-runs.json \
+              -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer ${XRAY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "$RUN_QUERY" \
+              "https://xray.cloud.getxray.app/api/v2/graphql")
+
+            echo ""
+            echo "HTTP status: $HTTP_CODE"
+            echo "=== Xray Test Runs ==="
+
+            jq . xray-test-runs.json
+
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+
+              TEST_RUN_COUNT=$(jq -r \
+                '.data.getTestRuns.total // 0' \
+                xray-test-runs.json)
+
+              echo ""
+              echo "Xray Test Runs found: $TEST_RUN_COUNT"
+
+              if [ "$TEST_RUN_COUNT" -gt 0 ]; then
+                break
+              fi
+
+            fi
+
+            if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Test Runs not available yet. Waiting 3 seconds..."
+              sleep 3
+            fi
+
+          done
+
+          if [ "$TEST_RUN_COUNT" -eq 0 ]; then
+            echo ""
+            echo "ERROR: Xray Test Runs were not available after waiting."
+            exit 1
+          fi  
+            
+            echo ""
+            echo "=== Test Run Mapping ==="
+
+            jq -r '
+              .data.getTestRuns.results[] |
+              "\(.test.jira.key)|\(.id)|\(.status.name)"
+            ' xray-test-runs.json
+
+            # --------------------------------------------------
+            # Process each Postman test
+            # --------------------------------------------------
+
+            UPDATED_COUNT=0
+            FAILED_UPDATE_COUNT=0
+
+            echo ""
+            echo "=== Updating Xray Test Run Comments ==="
+
+            while IFS= read -r TEST_RESULT; do
+
+              TEST_KEY=$(echo "$TEST_RESULT" | jq -r '.testKey')
+              TEST_NAME=$(echo "$TEST_RESULT" | jq -r '.testName')
+              TEST_STATUS=$(echo "$TEST_RESULT" | jq -r '.status')
+              EXPECTED_STATUS=$(echo "$TEST_RESULT" | jq -r '.expectedStatus // ""')
+              ACTUAL_STATUS=$(echo "$TEST_RESULT" | jq -r '.actualStatus // ""')
+              ASSERTION=$(echo "$TEST_RESULT" | jq -r '.assertion // ""')
+              FAILURE_MESSAGE=$(echo "$TEST_RESULT" | jq -r '.failureMessage // ""')
+              METHOD=$(echo "$TEST_RESULT" | jq -r '.method // ""')
+              REQUEST_URL=$(echo "$TEST_RESULT" | jq -r '.requestUrl // ""')
+
+              # Build a readable list of all Postman assertions
+              ASSERTIONS=$(echo "$TEST_RESULT" | jq -r '
+                if (.assertions // []) | length > 0 then
+                  (.assertions | map("\(.status): \(.name)") | join("\n"))
+                else
+                  "No assertion details captured"
+                end
+              ')
+
+
+              TEST_RUN_ID=$(jq -r \
+                --arg key "$TEST_KEY" \
+                '.data.getTestRuns.results[]
+                | select(.test.jira.key == $key)
+                | .id' \
+                xray-test-runs.json | head -n 1)
+
+            echo ""
+            echo "========================================"
+            echo "Jira Test: $TEST_KEY"
+            echo "Test Name: $TEST_NAME"
+            echo "Status: $TEST_STATUS"
+            echo "Xray Test Run: ${TEST_RUN_ID:-NOT FOUND}"
+            echo "========================================"
+
+            if [ -z "$TEST_RUN_ID" ]; then
+              echo "ERROR: No Xray Test Run found for $TEST_KEY"
+              FAILED_UPDATE_COUNT=$((FAILED_UPDATE_COUNT + 1))
+              continue
+            fi
+
+            # --------------------------------------------------
+            # Build comment
+            # --------------------------------------------------
+
+            if [ "$TEST_STATUS" = "FAIL" ]; then
+
+              COMMENT=$(printf '%s\n' \
+                "Jira Test: $TEST_KEY" \
+                "Xray Test Run: $TEST_RUN_ID" \
+                "" \
+                "Status: FAILED" \
+                "" \
+                "Actual Result:" \
+                "The Postman request failed an assertion." \
+                "" \
+                "Request:" \
+                "$METHOD $REQUEST_URL" \
+                "" \
+                "Expected HTTP status: ${EXPECTED_STATUS:-N/A}" \
+                "Actual HTTP status: ${ACTUAL_STATUS:-N/A}" \
+                "" \
+                "Assertions:" \
+                "$ASSERTIONS" \
+                "" \
+                "Failure Details:" \
+                "${FAILURE_MESSAGE:-Postman test failed}")
+
+
+            else
+
+              COMMENT=$(printf '%s\n' \
+                "Jira Test: $TEST_KEY" \
+                "Xray Test Run: $TEST_RUN_ID" \
+                "" \
+                "Status: PASSED" \
+                "" \
+                "Actual Result:" \
+                "The Postman request completed successfully and all captured assertions passed." \
+                "" \
+                "Request:" \
+                "$METHOD $REQUEST_URL" \
+                "" \
+                "Expected HTTP status: ${EXPECTED_STATUS:-N/A}" \
+                "Actual HTTP status: ${ACTUAL_STATUS:-N/A}" \
+                "" \
+                "Assertions:" \
+                "$ASSERTIONS")
+
+
+            fi
+
+            echo ""
+            echo "=== Comment ==="
+            echo "$COMMENT"
+
+            # --------------------------------------------------
+            # Build GraphQL mutation safely
+            # --------------------------------------------------
+
+            MUTATION=$(jq -n \
+              --arg id "$TEST_RUN_ID" \
+              --arg comment "$COMMENT" \
+              '{
+                query: (
+                  "mutation { updateTestRunComment(id: " +
+                  ($id | @json) +
+                  ", comment: " +
+                  ($comment | @json) +
+                  ") }"
+                )
+              }')
+
+            echo ""
+            echo "=== Updating Xray Test Run ==="
+
+            HTTP_CODE=$(curl -s \
+              -o xray-update-response.json \
+              -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer ${XRAY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "$MUTATION" \
+              "https://xray.cloud.getxray.app/api/v2/graphql")
+
+            echo "HTTP status: $HTTP_CODE"
+            echo "Response:"
+            cat xray-update-response.json
+            echo ""
+
+            if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+              echo "ERROR: HTTP failure updating $TEST_RUN_ID"
+              FAILED_UPDATE_COUNT=$((FAILED_UPDATE_COUNT + 1))
+              continue
+            fi
+
+            if jq -e '.errors? | length > 0' xray-update-response.json >/dev/null 2>&1; then
+              echo "ERROR: GraphQL failure updating $TEST_RUN_ID"
+              jq '.errors' xray-update-response.json
+              FAILED_UPDATE_COUNT=$((FAILED_UPDATE_COUNT + 1))
+              continue
+            fi
+
+            echo "SUCCESS: Updated Xray Test Run $TEST_RUN_ID"
+            UPDATED_COUNT=$((UPDATED_COUNT + 1))
+
+            done < <(
+              jq -c '.tests[]' xray-test-results.json
+            )
+
+            # --------------------------------------------------
+            # Final summary
+            # --------------------------------------------------
+
+            echo ""
+            echo "========================================"
+            echo "=== Xray Update Summary ==="
+            echo "========================================"
+            echo "Successfully updated: $UPDATED_COUNT"
+            echo "Failed updates:       $FAILED_UPDATE_COUNT"
+            echo "Total Xray Test Runs: $TEST_RUN_COUNT"
+            echo "========================================"
+
+            if [ "$FAILED_UPDATE_COUNT" -gt 0 ]; then
+              echo ""
+              echo "ERROR: One or more Xray Test Run updates failed."
+              exit 1
+            fi
+
+            echo ""
+            echo "All Xray Test Runs were updated successfully."
+
+      
+      # ----------------------------------------
+      # 11. Generate Bruno Test Summary
+      # ----------------------------------------
+
+      - name: Generate Bruno Test Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🧪 AEP API Test Execution Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "| Metric | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------:|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 📋 Total Requests | ${{ steps.bruno.outputs.total }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Passed | ${{ steps.bruno.outputs.passed }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ❌ Failed | ${{ steps.bruno.outputs.failed }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ⏱ Duration | ${{ steps.bruno.outputs.duration-ms }} ms |" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🌐 Execution Configuration" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "| Setting | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Environment | ${{ github.event.inputs.environment || 'dev' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Collection | aep-regression |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Framework | Bruno CLI |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Runner | GitHub-hosted Ubuntu |" >> "$GITHUB_STEP_SUMMARY"
+
+    
+
+
+      # ----------------------------------------
+      # 12. Upload Bruno Results
+      # ----------------------------------------
+
+      - name: Upload Bruno Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-results
+          path: |
+            test-results.xml
+            bruno-results.json
+            xray-import-response.json
+          retention-days: 10
+
+       
+      # ----------------------------------------
+      # 13. Check Bruno Results
+      # ----------------------------------------
+
+      - name: Check Bruno Result
+        if: always()
+        shell: bash
+        env:
+          BRUNO_EXIT_CODE: ${{ steps.bruno.outputs.exit-code }}
+        run: |
+          echo "=== Bruno Regression Final Status ==="
+          echo "Bruno exit code: ${BRUNO_EXIT_CODE:-unknown}"
+
+          if [ "${BRUNO_EXIT_CODE:-1}" != "0" ]; then
+            echo "AEP API Regression had test failures."
+            echo "The available results have been published to Xray."
+            exit 0
+          fi
+
+          echo "AEP API Regression passed."
+          echo "The results have been published to Xray."

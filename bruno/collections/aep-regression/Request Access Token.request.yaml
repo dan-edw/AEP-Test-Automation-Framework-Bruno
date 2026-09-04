@@ -1,0 +1,51 @@
+info:
+  name: Request Access Token
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://{{IMS}}/ims/token/v2?grant_type=client_credentials&client_id={{API_KEY}}&client_secret={{CLIENT_SECRET}}&scope={{SCOPES}}
+  params:
+    - name: grant_type
+      value: client_credentials
+      type: query
+    - name: client_id
+      value: "{{API_KEY}}"
+      type: query
+    - name: client_secret
+      value: "{{CLIENT_SECRET}}"
+      type: query
+    - name: scope
+      value: "{{SCOPES}}"
+      type: query
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const response = res.getBody(); 
+
+        test("Authentication successful", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+        test("Access token is returned", function () {
+          expect(response.access_token).to.exist;
+        });
+
+        if (response.access_token) {
+          bru.setEnvVar("ACCESS_TOKEN", response.access_token);
+
+          console.log("ACCESS_TOKEN successfully stored.");
+          console.log("Token exists:", !!bru.getEnvVar("ACCESS_TOKEN"));
+          console.log("Token length:", bru.getEnvVar("ACCESS_TOKEN")?.length);
+        } else {
+          throw new Error("Unable to acquire ACCESS_TOKEN.");
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
