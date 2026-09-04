@@ -12,11 +12,11 @@ http:
     - name: Content-Type
       value: application/json
     - name: x-api-key
-      value: "{{API_KEY}}"
+      value: "{{AEP_CLIENT_ID}}"
     - name: x-gw-ims-org-id
-      value: "{{IMS_ORG}}"
+      value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
-      value: "{{SANDBOX_NAME}}"
+      value: "{{AEP_SANDBOX_NAME}}"
   params:
     - name: CONTAINER_ID
       value: "{{CONTAINER_ID}}"
