@@ -114,6 +114,22 @@ jobs:
           echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_OUTPUT"
 
       
+      # ----------------------------------------
+      # Debug
+      # ----------------------------------------
+      
+      - name: Check Bruno request order
+        shell: bash
+        run: |
+          echo "=== Request sequence values ==="
+
+          for file in bruno/collections/aep-regression/*.request.yml; do
+            echo ""
+            echo "FILE: $file"
+            grep -A4 '^info:' "$file" || true
+          done
+
+      
       
       # ----------------------------------------
       # 5. Run Bruno Collection
