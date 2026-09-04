@@ -35,6 +35,14 @@ http:
       type: path
   auth: inherit
     
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        test("CUTECH-4143", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
 settings:
   encodeUrl: true
   timeout: 0

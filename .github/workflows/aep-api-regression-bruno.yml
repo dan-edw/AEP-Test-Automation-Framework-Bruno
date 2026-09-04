@@ -317,17 +317,21 @@ jobs:
           # Save values for Step 14
           # --------------------------------------------------
 
-          echo "XRAY_EXECUTION_KEY=$XRAY_EXECUTION_KEY" >> "$GITHUB_OUTPUT"
-          echo "XRAY_EXECUTION_ID=$XRAY_EXECUTION_ID" >> "$GITHUB_OUTPUT"
+          XRAY_EXECUTION_KEY=$(jq -r '.key // empty' xray-import-response.json)
+          XRAY_EXECUTION_ID=$(jq -r '.id // empty' xray-import-response.json)
 
           echo ""
-          echo "=== Xray execution information saved ==="
+          echo "=== Xray import result ==="
           echo "Execution key: $XRAY_EXECUTION_KEY"
-          echo "Execution ID:  $XRAY_EXECUTION_ID"
+          echo "Execution ID: $XRAY_EXECUTION_ID"
 
-          echo ""
-          echo "SUCCESS: JUnit results imported into Xray"
-
+          if [ -z "$XRAY_EXECUTION_KEY" ]; then
+            echo "WARNING: Xray returned HTTP $HTTP_CODE but no Test Execution key."
+            echo "Response:"
+            cat xray-import-response.json
+          else
+            echo "SUCCESS: Xray Test Execution created/updated: $XRAY_EXECUTION_KEY"
+          fi
 
 
 

@@ -22,6 +22,15 @@ http:
       value: "{{CONTAINER_ID}}"
       type: path
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        test("CUTECH-4142", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+
 settings:
   encodeUrl: true
   timeout: 0

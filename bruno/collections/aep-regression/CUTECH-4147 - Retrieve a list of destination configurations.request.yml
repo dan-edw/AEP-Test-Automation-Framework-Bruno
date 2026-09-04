@@ -19,6 +19,14 @@ http:
       value: "{{AEP_SANDBOX_NAME}}"
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        test("CUTECH-4147", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
 settings:
   encodeUrl: true
   timeout: 0
