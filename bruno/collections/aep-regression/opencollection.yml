@@ -12,9 +12,9 @@ request:
         if (!token) {
           console.log("ACCESS_TOKEN not available. Requesting Adobe access token...");
 
-          const clientId = bru.getVar("AEP_CLIENT_ID");
-          const clientSecret = bru.getVar("AEP_CLIENT_SECRET");
-          const scope = bru.getVar("AEP_SCOPE");
+          const clientId = bru.getEnvVar("AEP_CLIENT_ID");
+          const clientSecret = bru.getEnvVar("AEP_CLIENT_SECRET");
+          const scope = bru.getEnvVar("AEP_SCOPE");
 
           if (!clientId) {
             throw new Error("AEP_CLIENT_ID is not available");
@@ -31,6 +31,10 @@ request:
           console.log("AEP_CLIENT_ID exists:", !!clientId);
           console.log("AEP_CLIENT_SECRET exists:", !!clientSecret);
           console.log("AEP_SCOPE exists:", !!scope);
+
+          console.log("AEP_CLIENT_ID length:", clientId.length);
+          console.log("AEP_CLIENT_SECRET length:", clientSecret.length);
+          console.log("AEP_SCOPE length:", scope.length);
 
           const body =
             "grant_type=client_credentials" +
@@ -50,7 +54,12 @@ request:
           console.log("Adobe authentication status:", authResponse.status);
 
           if (authResponse.status !== 200) {
-            console.log("Adobe authentication response:", authResponse.data);
+            console.log("OAuth error:", authResponse.data?.error);
+            console.log(
+              "OAuth error description:",
+              authResponse.data?.error_description
+            );
+
             throw new Error(
               "Adobe authentication failed with HTTP " + authResponse.status
             );
@@ -59,7 +68,9 @@ request:
           token = authResponse.data?.access_token;
 
           if (!token) {
-            throw new Error("Adobe authentication response did not contain access_token");
+            throw new Error(
+              "Adobe authentication response did not contain access_token"
+            );
           }
 
           bru.setVar("ACCESS_TOKEN", token);
