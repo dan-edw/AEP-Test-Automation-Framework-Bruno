@@ -72,6 +72,7 @@ jobs:
       # ----------------------------------------
 
       - name: Inspect Bruno files
+        shell: bash
         run: |
           echo "=== Bruno files ==="
           find bruno -maxdepth 6 -type f | sort
@@ -79,6 +80,15 @@ jobs:
           echo ""
           echo "=== Collection directory ==="
           ls -la bruno/collections/aep-regression
+
+          echo ""
+          echo "=== Verify collection root ==="
+          test -f bruno/collections/aep-regression/opencollection.yml || {
+            echo "ERROR: opencollection.yml not found"
+            exit 1
+          }
+
+          cat bruno/collections/aep-regression/opencollection.yml
 
 
       # ----------------------------------------
