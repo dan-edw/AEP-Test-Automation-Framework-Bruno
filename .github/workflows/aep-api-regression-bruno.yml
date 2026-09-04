@@ -334,8 +334,43 @@ jobs:
           fi
 
 
+      # ----------------------------------------
+      # Regression Summary
+      # ----------------------------------------
 
+      - name: Regression Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## AEP API Regression" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
+          if [ -f "test-results.xml" ]; then
+            TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l)
+            FAILED=$(grep -o '<failure ' test-results.xml | wc -l)
+            PASSED=$((TOTAL - FAILED))
+
+            echo "| Result | Count |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|---|---:|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Passed | $PASSED |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Failed | $FAILED |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Total | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
+
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$FAILED" -gt 0 ]; then
+              echo "❌ Regression completed with test failures." >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "✅ All regression tests passed." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "❌ Bruno did not produce test-results.xml." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      
+      
+      
+      
       # ----------------------------------------
       # 10. Add actual results / failure details to Xray Test Runs
       # ----------------------------------------
