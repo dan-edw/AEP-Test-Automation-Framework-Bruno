@@ -19,20 +19,6 @@ http:
       value: "{{AEP_SANDBOX_NAME}}"
   auth: inherit
 
-runtime:
-  scripts:
-    - type: before-request
-      code: |-
-        const token = bru.getVar("ACCESS_TOKEN");
-
-        if (!token) {
-          throw new Error("ACCESS_TOKEN is not available");
-        }
-
-        req.setHeader("Authorization", `Bearer ${token}`);
-
-        console.log("Authorization header set.");
-
 settings:
   encodeUrl: true
   timeout: 0

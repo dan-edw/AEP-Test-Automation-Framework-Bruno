@@ -144,12 +144,12 @@ jobs:
           command: >-
             run
             --env-file "${{ steps.environment.outputs.ENV_FILE }}"
-            --env-var AEP_CLIENT_ID=${{ secrets.AEP_CLIENT_ID }}
-            --env-var AEP_CLIENT_SECRET=${{ secrets.AEP_CLIENT_SECRET }}
-            --env-var AEP_SCOPE=${{ secrets.AEP_SCOPE }}
-            --env-var AEP_IMS_ORG=${{ secrets.AEP_IMS_ORG }}
-            --env-var AEP_SANDBOX_NAME=${{ vars.AEP_SANDBOX_NAME }}
-            --env-var CONTAINER_ID=tenant
+            --env-var "AEP_CLIENT_ID=${{ secrets.AEP_CLIENT_ID }}"
+            --env-var "AEP_CLIENT_SECRET=${{ secrets.AEP_CLIENT_SECRET }}"
+            --env-var "AEP_SCOPE=${{ secrets.AEP_SCOPE }}"
+            --env-var "AEP_IMS_ORG=${{ secrets.AEP_IMS_ORG }}"
+            --env-var "AEP_SANDBOX_NAME=${{ vars.AEP_SANDBOX_NAME }}"
+            --env-var "CONTAINER_ID=tenant"
             --reporter-junit test-results.xml
             --reporter-json bruno-results.json
             --reporter-skip-headers "Authorization"
