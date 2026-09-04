@@ -1,89 +1,71 @@
-Run usebruno/bruno-cli-action@v1
-  with:
-    working-directory: bruno/collections/aep-regression
-    command: run --env-file "/home/runner/work/AEP-Test-Automation-Framework-Bruno/AEP-Test-Automation-Framework-Bruno/bruno/environments/dev.json" --env-var AEP_CLIENT_ID=*** --env-var AEP_CLIENT_SECRET=*** --env-var AEP_SCOPE=*** --env-var AEP_IMS_ORG=*** --env-var AEP_SANDBOX_NAME=dev --env-var CONTAINER_ID=tenant --reporter-junit test-results.xml --reporter-json bruno-results.json --reporter-skip-headers "Authorization"
-    bru-version: latest
-Set up Node.js
-1s
-Run actions/setup-node@v6
-    with:
-      node-version: 22
-      check-latest: false
-      token: ***
-      package-manager-cache: true
-  Found in cache @ /opt/hostedtoolcache/node/22.23.2/x64
-Environment details
-    node: v22.23.2
-    npm: 10.9.8
-    yarn: 1.22.22
-Install action dependencies (fast-xml-parser)
-1s
-Run cd "/home/runner/work/_actions/usebruno/bruno-cli-action/v1"
-    cd "/home/runner/work/_actions/usebruno/bruno-cli-action/v1"
-    npm ci --omit=dev --no-audit --no-fund --prefer-offline
-    shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-  added 2 packages in 616ms
-Install Bruno CLI
-17s
-Run /home/runner/work/_actions/usebruno/bruno-cli-action/v1/lib/install-cli.sh
-    /home/runner/work/_actions/usebruno/bruno-cli-action/v1/lib/install-cli.sh
-    shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-    env:
-      BRU_VERSION: latest
-Install @usebruno/cli@latest
-    npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
-    npm warn deprecated crypto-js@4.2.0: Active development of CryptoJS has been discontinued. This library is no longer maintained.
-    npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-    npm warn deprecated uuid@10.0.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
-    added 506 packages in 16s
-    90 packages are looking for funding
-      run `npm fund` for details
-    4.1.0
-Run bru
-2s
-Run /home/runner/work/_actions/usebruno/bruno-cli-action/v1/lib/run-bru.sh
-    /home/runner/work/_actions/usebruno/bruno-cli-action/v1/lib/run-bru.sh
-        Host: Error: ACCESS_TOKEN is not available
-        at QuickJSContext.unwrapResult (/opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@usebruno/cli/node_modules/quickjs-emscripten-core/dist/index.js:4:28081)
-        at executeQuickJsVmAsync (/opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@usebruno/cli/node_modules/@usebruno/js/src/sandbox/quickjs/index.js:138:31)
-        at async ScriptRuntime.runRequestScript (/opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@usebruno/cli/node_modules/@usebruno/js/src/runtime/script-runtime.js:152:7)
-        at async runSingleRequest (/opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@usebruno/cli/src/runner/run-single-request.js:254:24)
-        at async runIteration (/opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@usebruno/cli/src/commands/run.js:1317:24)
-        at async Object.handler (/opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@usebruno/cli/src/commands/run.js:1540:33)
-    📊 Execution Summary
-    ┌───────────────┬──────────────┐
-    │ Metric        │    Result    │
-    ├───────────────┼──────────────┤
-    │ Status        │    ✗ FAIL    │
-    ├───────────────┼──────────────┤
-    │ Requests      │ 6 (6 Failed) │
-    ├───────────────┼──────────────┤
-    │ Tests         │     0/0      │
-    ├───────────────┼──────────────┤
-    │ Assertions    │     0/0      │
-    ├───────────────┼──────────────┤
-    │ Duration (ms) │     819      │
-    └───────────────┴──────────────┘
-    Wrote json results to bruno-results.json
-    Wrote junit results to test-results.xml
-Parse JUnit results
-0s
-Run node /home/runner/work/_actions/usebruno/bruno-cli-action/v1/lib/report.js
-    node /home/runner/work/_actions/usebruno/bruno-cli-action/v1/lib/report.js
-    shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-    env:
-      JUNIT_PATH: /home/runner/work/AEP-Test-Automation-Framework-Bruno/AEP-Test-Automation-Framework-Bruno/bruno/collections/aep-regression/test-results.xml
-  Parsed JUnit: passed=0 failed=6 total=6 duration-ms=819
-Propagate exit code
-0s
-Run set -euo pipefail
-    set -euo pipefail
-    if [ "${RUN_EXIT:-0}" -ne 0 ]; then
-      echo "::error::bru exited with ${RUN_EXIT}."
-      exit "${RUN_EXIT}"
-    fi
-    shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-    env:
-      RUN_EXIT: 1
-  Error: bru exited with 1.
-  Error: Process completed with exit code 1.
+opencollection: 1.0.0
+
+info:
+  name: AEP Regression
+
+request:
+  scripts:
+    - type: before-request
+      code: |-
+        let token = bru.getVar("ACCESS_TOKEN");
+
+        if (!token) {
+          console.log("ACCESS_TOKEN not available. Requesting Adobe access token...");
+
+          const clientId = bru.getVar("AEP_CLIENT_ID");
+          const clientSecret = bru.getVar("AEP_CLIENT_SECRET");
+          const scope = bru.getVar("AEP_SCOPE");
+
+          if (!clientId) {
+            throw new Error("AEP_CLIENT_ID is not available");
+          }
+
+          if (!clientSecret) {
+            throw new Error("AEP_CLIENT_SECRET is not available");
+          }
+
+          if (!scope) {
+            throw new Error("AEP_SCOPE is not available");
+          }
+
+          console.log("AEP_CLIENT_ID exists:", !!clientId);
+          console.log("AEP_CLIENT_SECRET exists:", !!clientSecret);
+          console.log("AEP_SCOPE exists:", !!scope);
+
+          const body =
+            "grant_type=client_credentials" +
+            "&client_id=" + encodeURIComponent(clientId) +
+            "&client_secret=" + encodeURIComponent(clientSecret) +
+            "&scope=" + encodeURIComponent(scope);
+
+          const authResponse = await bru.sendRequest({
+            method: "POST",
+            url: "https://ims-na1.adobelogin.com/ims/token/v3",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            data: body
+          });
+
+          console.log("Adobe authentication status:", authResponse.status);
+
+          if (authResponse.status !== 200) {
+            console.log("Adobe authentication response:", authResponse.data);
+            throw new Error(
+              "Adobe authentication failed with HTTP " + authResponse.status
+            );
+          }
+
+          token = authResponse.data?.access_token;
+
+          if (!token) {
+            throw new Error("Adobe authentication response did not contain access_token");
+          }
+
+          bru.setVar("ACCESS_TOKEN", token);
+
+          console.log("ACCESS_TOKEN successfully acquired.");
+          console.log("Token length:", token.length);
+        }
+
+        req.setHeader("Authorization", "Bearer " + token);
