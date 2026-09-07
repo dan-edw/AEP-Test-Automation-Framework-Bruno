@@ -346,8 +346,8 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if [ -f "test-results.xml" ]; then
-            TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l)
-            FAILED=$(grep -o '<failure ' test-results.xml | wc -l)
+            TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l || true)
+            FAILED=$(grep -o '<failure ' test-results.xml | wc -l || true)
             PASSED=$((TOTAL - FAILED))
 
             echo "| Result | Count |" >> "$GITHUB_STEP_SUMMARY"
@@ -355,17 +355,19 @@ jobs:
             echo "| Passed | $PASSED |" >> "$GITHUB_STEP_SUMMARY"
             echo "| Failed | $FAILED |" >> "$GITHUB_STEP_SUMMARY"
             echo "| Total | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
-
             echo "" >> "$GITHUB_STEP_SUMMARY"
 
             if [ "$FAILED" -gt 0 ]; then
-              echo "❌ Regression completed with test failures." >> "$GITHUB_STEP_SUMMARY"
+              echo "⚠️ Regression completed with test failures." >> "$GITHUB_STEP_SUMMARY"
+              echo "Xray is the source of truth for test status." >> "$GITHUB_STEP_SUMMARY"
             else
               echo "✅ All regression tests passed." >> "$GITHUB_STEP_SUMMARY"
             fi
           else
-            echo "❌ Bruno did not produce test-results.xml." >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ test-results.xml was not generated." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
+
 
       
       
