@@ -180,10 +180,24 @@ jobs:
             exit 1
           fi
 
-          echo "Bruno regression completed."
+          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ')
+          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ')
+          PASSED=$((TOTAL - FAILED))
+
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "passed=$PASSED" >> "$GITHUB_OUTPUT"
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "=== Bruno Regression Result ==="
+          echo "Passed: $PASSED"
+          echo "Failed: $FAILED"
+          echo "Total:  $TOTAL"
+          echo ""
           echo "Test failures are reported in Xray and do not fail this GitHub step."
 
           exit 0
+
 
 
   
@@ -195,8 +209,8 @@ jobs:
         if: always()
         shell: bash
         run: |
-          echo "=== Bruno action outputs ==="
-          echo "Exit code: ${{ steps.bruno.outputs.exit-code }}"
+          echo "=== Bruno results ==="
+          echo "Exit code: ${{ steps.bruno.outputs.exit_code }}"
           echo "Passed:    ${{ steps.bruno.outputs.passed }}"
           echo "Failed:    ${{ steps.bruno.outputs.failed }}"
           echo "Total:     ${{ steps.bruno.outputs.total }}"
@@ -211,12 +225,14 @@ jobs:
           if [ -f "bruno/collections/aep-regression/bruno-results.json" ]; then
             cp bruno/collections/aep-regression/bruno-results.json bruno-results.json
           else
-            echo "WARNING: Bruno JSON report was not created"
+            echo "ERROR: Bruno JSON report was not created"
+            exit 1
           fi
 
           echo ""
           echo "=== JUnit ==="
           cat test-results.xml
+
 
 
       
@@ -335,14 +351,6 @@ jobs:
             echo "ERROR: Xray JUnit import failed"
             exit 1
           fi
-
-          # --------------------------------------------------
-          # Get Test Execution key AND internal ID
-          # directly from the import response
-          # --------------------------------------------------
-
-          XRAY_EXECUTION_KEY=$(jq -r '.key // empty' xray-import-response.json)
-          XRAY_EXECUTION_ID=$(jq -r '.id // empty' xray-import-response.json)
        
 
           # --------------------------------------------------
@@ -370,35 +378,54 @@ jobs:
       # Regression Summary
       # ----------------------------------------
 
-      - name: Regression Summary
+      - name: AEP Regression Summary
         if: always()
         shell: bash
         run: |
-          echo "## AEP API Regression" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ ! -f "test-results.xml" ]; then
+            {
+              echo "## 🧪 AEP API Regression"
+              echo ""
+              echo "❌ Bruno did not generate test-results.xml."
+            } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ -f "test-results.xml" ]; then
-            TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l || true)
-            FAILED=$(grep -o '<failure ' test-results.xml | wc -l || true)
-            PASSED=$((TOTAL - FAILED))
-
-            echo "| Result | Count |" >> "$GITHUB_STEP_SUMMARY"
-            echo "|---|---:|" >> "$GITHUB_STEP_SUMMARY"
-            echo "| Passed | $PASSED |" >> "$GITHUB_STEP_SUMMARY"
-            echo "| Failed | $FAILED |" >> "$GITHUB_STEP_SUMMARY"
-            echo "| Total | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-
-            if [ "$FAILED" -gt 0 ]; then
-              echo "⚠️ Regression completed with test failures." >> "$GITHUB_STEP_SUMMARY"
-              echo "Xray is the source of truth for test status." >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "✅ All regression tests passed." >> "$GITHUB_STEP_SUMMARY"
-            fi
-          else
-            echo "❌ test-results.xml was not generated." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+
+          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ')
+          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ')
+          PASSED=$((TOTAL - FAILED))
+
+          {
+            echo "## 🧪 AEP API Regression"
+            echo ""
+            echo "| Result | Count |"
+            echo "| :--- | ---: |"
+            echo "| ✅ Passed | ${PASSED} |"
+            echo "| ❌ Failed | ${FAILED} |"
+            echo "| 📋 Total | ${TOTAL} |"
+            echo ""
+
+            if [ "$FAILED" -gt 0 ]; then
+              echo "⚠️ Regression completed with test failures."
+              echo ""
+              echo "Xray is the source of truth for test status."
+            else
+              echo "✅ All regression tests passed."
+            fi
+
+            echo ""
+            echo "### 🌐 Execution Configuration"
+            echo ""
+            echo "| Setting | Value |"
+            echo "| :--- | :--- |"
+            echo "| Environment | ${{ github.event.inputs.environment || 'dev' }} |"
+            echo "| Collection | aep-regression |"
+            echo "| Framework | Bruno CLI 4.1.0 |"
+            echo "| Runner | GitHub-hosted Ubuntu |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
 
 
       
@@ -693,36 +720,6 @@ jobs:
             echo "All Xray Test Runs were updated successfully."
 
       
-      # ----------------------------------------
-      # 11. Generate Bruno Test Summary
-      # ----------------------------------------
-
-      - name: Generate Bruno Test Summary
-        if: always()
-        shell: bash
-        run: |
-          echo "## 🧪 AEP API Test Execution Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          echo "| Metric | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|-------:|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| 📋 Total Requests | ${{ steps.bruno.outputs.total }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Passed | ${{ steps.bruno.outputs.passed }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ❌ Failed | ${{ steps.bruno.outputs.failed }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ⏱ Duration | ${{ steps.bruno.outputs.duration-ms }} ms |" >> "$GITHUB_STEP_SUMMARY"
-
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### 🌐 Execution Configuration" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          echo "| Setting | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Environment | ${{ github.event.inputs.environment || 'dev' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Collection | aep-regression |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Framework | Bruno CLI |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Runner | GitHub-hosted Ubuntu |" >> "$GITHUB_STEP_SUMMARY"
-
-    
 
 
       # ----------------------------------------
@@ -749,7 +746,8 @@ jobs:
         if: always()
         shell: bash
         env:
-          BRUNO_EXIT_CODE: ${{ steps.bruno.outputs.exit-code }}
+          BRUNO_EXIT_CODE: ${{ steps.bruno.outputs.exit_code }}
+
         run: |
           echo "=== Bruno Regression Final Status ==="
           echo "Bruno exit code: ${BRUNO_EXIT_CODE:-unknown}"
