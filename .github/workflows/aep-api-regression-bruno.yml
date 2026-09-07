@@ -131,7 +131,7 @@ jobs:
 
       
       # ----------------------------------------
-      # Install Bruno CLI
+      # 5. Install Bruno CLI
       # ----------------------------------------
       
       - name: Install Bruno CLI
@@ -143,7 +143,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 5. Run Bruno Collection
+      # 6. Run Bruno Collection
       # ----------------------------------------
 
       - name: Run AEP API Regression
@@ -203,7 +203,7 @@ jobs:
 
   
       # ----------------------------------------
-      # 6. Generate Bruno Test Summary
+      # 7. Generate Bruno Test Summary
       # ----------------------------------------
           
       - name: Prepare Bruno Reports
@@ -240,7 +240,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 7. Authenticate with Xray Cloud
+      # 8. Authenticate with Xray Cloud
       # ----------------------------------------
       
       - name: Authenticate with Xray Cloud
@@ -265,7 +265,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 8. Check Xray JUnit file
+      # 9. Check Xray JUnit file
       # ----------------------------------------    
       
       - name: Check Xray JUnit file
@@ -292,7 +292,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 9. Publish the Results to Xray
+      # 10. Publish the Results to Xray
       # ----------------------------------------
 
       - name: Publish Results to Xray
@@ -376,7 +376,7 @@ jobs:
 
 
       # ----------------------------------------
-      # Regression Summary
+      # 11. Regression Summary
       # ----------------------------------------
 
       - name: AEP Regression Summary
@@ -393,21 +393,49 @@ jobs:
             exit 1
           fi
 
-          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
-          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
-          PASSED=$((TOTAL - FAILED))
+          if [ ! -f "bruno-results.json" ]; then
+            {
+              echo "## 🧪 AEP API Regression"
+              echo ""
+              echo "❌ Bruno did not generate bruno-results.json."
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            exit 1
+          fi
+
+          # JUnit-level results
+          TEST_TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
+          TEST_FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
+          TEST_PASSED=$((TEST_TOTAL - TEST_FAILED))
+
+          # Bruno request-level results
+          REQUEST_TOTAL=$(jq '[.results[]] | length' bruno-results.json 2>/dev/null || echo "0")
+          REQUEST_PASSED=$(jq '[.results[] | select(.status == "pass")] | length' bruno-results.json 2>/dev/null || echo "0")
+          REQUEST_FAILED=$(jq '[.results[] | select(.status == "fail")] | length' bruno-results.json 2>/dev/null || echo "0")
 
           {
             echo "## 🧪 AEP API Regression"
             echo ""
-            echo "| Result | Count |"
+
+            echo "### 📡 Request Summary"
+            echo ""
+            echo "| Metric | Result |"
             echo "| :--- | ---: |"
-            echo "| ✅ Passed | ${PASSED} |"
-            echo "| ❌ Failed | ${FAILED} |"
-            echo "| 📋 Total | ${TOTAL} |"
+            echo "| 📋 Total Requests | ${REQUEST_TOTAL} |"
+            echo "| ✅ Passed Requests | ${REQUEST_PASSED} |"
+            echo "| ❌ Failed Requests | ${REQUEST_FAILED} |"
             echo ""
 
-            if [ "$FAILED" -gt 0 ]; then
+            echo "### 🧪 Test / Assertion Summary"
+            echo ""
+            echo "| Metric | Result |"
+            echo "| :--- | ---: |"
+            echo "| 📋 Total Tests | ${TEST_TOTAL} |"
+            echo "| ✅ Passed Tests | ${TEST_PASSED} |"
+            echo "| ❌ Failed Tests | ${TEST_FAILED} |"
+            echo ""
+
+            if [ "$TEST_FAILED" -gt 0 ]; then
               echo "⚠️ Regression completed with test failures."
               echo ""
               echo "Xray is the source of truth for test status."
@@ -427,15 +455,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
 
-
-
-
-      
-      
       
       
       # ----------------------------------------
-      # 10. Add actual results / failure details to Xray Test Runs
+      # 12. Add actual results / failure details to Xray Test Runs
       # ----------------------------------------
 
       - name: Update Xray Test Run Results
@@ -725,7 +748,7 @@ jobs:
 
 
       # ----------------------------------------
-      # 12. Upload Bruno Results
+      # 13. Upload Bruno Results
       # ----------------------------------------
 
       - name: Upload Bruno Results
@@ -741,7 +764,7 @@ jobs:
 
        
       # ----------------------------------------
-      # 13. Check Bruno Results
+      # 14. Check Bruno Results
       # ----------------------------------------
 
       - name: Check Bruno Result
