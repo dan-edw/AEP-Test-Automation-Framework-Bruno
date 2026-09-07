@@ -235,11 +235,69 @@ jobs:
           cat test-results.xml
 
 
+      # ----------------------------------------
+      # 8. Add Xray Test Keys to JUnit
+      # ----------------------------------------
+
+      - name: Add Xray Test Keys to JUnit
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import re
+          import xml.etree.ElementTree as ET
+
+          path = "test-results.xml"
+
+          tree = ET.parse(path)
+          root = tree.getroot()
+
+          updated = 0
+
+          for testcase in root.iter("testcase"):
+              name = testcase.get("name", "")
+
+              match = re.search(r'\b(CUTECH-\d+)\b', name)
+
+              if not match:
+                  print(f"WARNING: No Jira key found in testcase name: {name}")
+                  continue
+
+              test_key = match.group(1)
+
+              properties = testcase.find("properties")
+              if properties is None:
+                  properties = ET.Element("properties")
+                  testcase.insert(0, properties)
+
+              existing = properties.find("./property[@name='test_key']")
+
+              if existing is None:
+                  prop = ET.SubElement(properties, "property")
+                  prop.set("name", "test_key")
+                  prop.set("value", test_key)
+              else:
+                  existing.set("value", test_key)
+
+              print(f"Mapped {name} -> {test_key}")
+              updated += 1
+
+          tree.write(path, encoding="utf-8", xml_declaration=True)
+
+          if updated == 0:
+              raise SystemExit("ERROR: No Xray Test keys were added to JUnit")
+
+          print(f"Added Xray Test keys to {updated} testcase(s)")
+          PY
+
+          echo ""
+          echo "=== Xray-ready JUnit ==="
+          cat test-results.xml
+
 
       
       
       # ----------------------------------------
-      # 8. Authenticate with Xray Cloud
+      # 9. Authenticate with Xray Cloud
       # ----------------------------------------
       
       - name: Authenticate with Xray Cloud
@@ -264,7 +322,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 9. Check Xray JUnit file
+      # 10. Check Xray JUnit file
       # ----------------------------------------    
       
       - name: Check Xray JUnit file
@@ -291,7 +349,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 10. Publish the Results to Xray
+      # 11. Publish the Results to Xray
       # ----------------------------------------
 
       - name: Publish Results to Xray
@@ -375,7 +433,7 @@ jobs:
 
 
       # ----------------------------------------
-      # 11. Regression Summary
+      # 12. Regression Summary
       # ----------------------------------------
 
       - name: AEP Regression Summary
@@ -460,7 +518,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 12. Add actual results / failure details to Xray Test Runs
+      # 13. Add actual results / failure details to Xray Test Runs
       # ----------------------------------------
 
       - name: Update Xray Test Run Results
@@ -750,7 +808,7 @@ jobs:
 
 
       # ----------------------------------------
-      # 13. Upload Bruno Results
+      # 14. Upload Bruno Results
       # ----------------------------------------
 
       - name: Upload Bruno Results
@@ -766,7 +824,7 @@ jobs:
 
        
       # ----------------------------------------
-      # 14. Check Bruno Results
+      # 15. Check Bruno Results
       # ----------------------------------------
 
       - name: Check Bruno Result
