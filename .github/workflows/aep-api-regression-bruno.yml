@@ -591,7 +591,7 @@ jobs:
                   echo "GraphQL returned errors:"
                   jq '.errors' xray-test-runs.json
                 else
-                  TEST_RUN_COUNT=$(jq -r 'data.getTestRuns.total // 0' xray-test-runs.json)
+                  TEST_RUN_COUNT=$(jq -r '.data.getTestRuns.total // 0' xray-test-runs.json)
 
                   echo "Xray Test Runs found: $TEST_RUN_COUNT"
 
