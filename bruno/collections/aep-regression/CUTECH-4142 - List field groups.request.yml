@@ -23,76 +23,23 @@ http:
       type: path
 
 runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
+    - expression: res.body
+      operator: isJson
+
+    - expression: res.body.results
+      operator: isArray
+
   scripts:
-    - type: after-response
+    - type: tests
       code: |-
         test("CUTECH-4142", function () {
-          const checks = [];
-
-          function check(name, assertion) {
-            try {
-              assertion();
-
-              checks.push({
-                name,
-                status: "PASS"
-              });
-            } catch (error) {
-              checks.push({
-                name,
-                status: "FAIL",
-                error: error.message
-              });
-            }
-          }
-
-          const body = res.getBody();
-
-          check("Expected HTTP status is 200", function () {
-            expect(res.getStatus()).to.equal(200);
-          });
-
-          check("Response is valid JSON", function () {
-            if (typeof body === "string") {
-              expect(() => JSON.parse(body)).to.not.throw();
-            } else {
-              expect(body).to.satisfy(
-                value => value !== null && typeof value === "object"
-              );
-            }
-          });
-
-          check("Response results is an array", function () {
-            const json =
-              typeof body === "string"
-                ? JSON.parse(body)
-                : body;
-
-            expect(json.results).to.be.an("array");
-          });
-
-
-          const summary = checks
-            .map(check => {
-              if (check.status === "PASS") {
-                return `PASS: ${check.name}`;
-              }
-
-              return `FAIL: ${check.name}\n  Error: ${check.error}`;
-            })
-            .join("\n");
-
-          const failures = checks.filter(
-            check => check.status === "FAIL"
-          );
-
-          if (failures.length > 0) {
-            throw new Error("\n" + summary);
-          }
+          expect(res.getStatus()).to.equal(200);
         });
-
-
-
 
 
 settings:
