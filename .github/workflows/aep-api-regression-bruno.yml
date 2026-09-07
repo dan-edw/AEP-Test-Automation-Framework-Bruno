@@ -130,6 +130,17 @@ jobs:
           done
 
       
+      # ----------------------------------------
+      # Install Bruno CLI
+      # ----------------------------------------
+      
+      - name: Install Bruno CLI
+        shell: bash
+        run: |
+          npm install -g @usebruno/cli@4.1.0
+          bru --version
+
+      
       
       # ----------------------------------------
       # 5. Run Bruno Collection
