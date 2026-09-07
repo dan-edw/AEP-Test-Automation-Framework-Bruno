@@ -180,8 +180,9 @@ jobs:
             exit 1
           fi
 
-          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ')
-          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ')
+          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
+          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
+
           PASSED=$((TOTAL - FAILED))
 
           echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
@@ -392,8 +393,8 @@ jobs:
             exit 1
           fi
 
-          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ')
-          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ')
+          TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
+          FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
           PASSED=$((TOTAL - FAILED))
 
           {
@@ -424,6 +425,7 @@ jobs:
             echo "| Framework | Bruno CLI 4.1.0 |"
             echo "| Runner | GitHub-hosted Ubuntu |"
           } >> "$GITHUB_STEP_SUMMARY"
+
 
 
 
