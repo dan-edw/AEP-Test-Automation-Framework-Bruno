@@ -236,42 +236,85 @@ jobs:
           tree = ET.parse(path)
           root = tree.getroot()
 
-          updated = 0
+          kept = 0
+          removed = 0
 
-          for testcase in root.iter("testcase"):
-              name = testcase.get("name", "")
+          for testsuite in list(root.findall("testsuite")):
+            testcases = list(testsuite.findall("testcase"))
 
-              match = re.search(r'\b(CUTECH-\d+)\b', name)
+          for testcase in testcases:
+            name = testcase.get("name", "")
 
-              if not match:
-                  print(f"WARNING: No Jira key found in testcase name: {name}")
-                  continue
+            match = re.search(r'\b(CUTECH-\d+)\b', name)
 
-              test_key = match.group(1)
+            # Declarative Bruno assertions become separate JUnit
+            # testcases. Do NOT send those to Xray.
+            if not match:
+                testsuite.remove(testcase)
+                removed += 1
+                continue
 
-              properties = testcase.find("properties")
-              if properties is None:
-                  properties = ET.Element("properties")
-                  testcase.insert(0, properties)
+            test_key = match.group(1)
 
-              existing = properties.find("./property[@name='test_key']")
+            properties = testcase.find("properties")
+            if properties is None:
+                properties = ET.Element("properties")
+                testcase.insert(0, properties)
 
-              if existing is None:
-                  prop = ET.SubElement(properties, "property")
-                  prop.set("name", "test_key")
-                  prop.set("value", test_key)
-              else:
-                  existing.set("value", test_key)
+            existing = properties.find("./property[@name='test_key']")
 
-              print(f"Mapped {name} -> {test_key}")
-              updated += 1
+            if existing is None:
+                prop = ET.SubElement(properties, "property")
+                prop.set("name", "test_key")
+                prop.set("value", test_key)
+            else:
+                existing.set("value", test_key)
 
-          tree.write(path, encoding="utf-8", xml_declaration=True)
+            print(f"Mapped {name} -> {test_key}")
+            kept += 1
 
-          if updated == 0:
-              raise SystemExit("ERROR: No Xray Test keys were added to JUnit")
+          # Remove empty suites created only for assertions
+          remaining = list(testsuite.findall("testcase"))
 
-          print(f"Added Xray Test keys to {updated} testcase(s)")
+          if not remaining:
+            root.remove(testsuite)
+            continue
+
+          # Keep JUnit suite counts accurate
+          failures = sum(
+            1 for testcase in remaining
+            if testcase.find("failure") is not None
+          )
+
+          errors = sum(
+            1 for testcase in remaining
+            if testcase.find("error") is not None
+          )
+
+          skipped = sum(
+            1 for testcase in remaining
+            if testcase.find("skipped") is not None
+          )
+
+          testsuite.set("tests", str(len(remaining)))
+          testsuite.set("failures", str(failures))
+          testsuite.set("errors", str(errors))
+          testsuite.set("skipped", str(skipped))
+
+          if kept == 0:
+            raise SystemExit(
+              "ERROR: No Jira/Xray testcase keys were found in JUnit"
+            )
+
+          tree.write(
+            path,
+            encoding="utf-8",
+            xml_declaration=True
+          )
+
+          print("")
+          print(f"Xray testcases kept: {kept}")
+          print(f"Bruno assertion testcases removed: {removed}")
           PY
 
           echo ""
@@ -279,7 +322,7 @@ jobs:
           cat test-results.xml
 
 
-      
+
       
       # ----------------------------------------
       # 9. Authenticate with Xray Cloud
