@@ -704,7 +704,7 @@ jobs:
                   --arg key "$TEST_KEY" '
                     .data.getTestRuns.results[]
                     | select(.test.jira.key == $key)
-                    | status.name
+                    | .status.name
                   ' xray-test-runs.json | head -n 1)
 
                 echo ""
