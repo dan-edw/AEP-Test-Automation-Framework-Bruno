@@ -26,26 +26,29 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        test("Status code is 200", function () {
-          expect(res.getStatus()).to.equal(400);
-        });
-        test("Response is valid JSON", function () {
+        test("CUTECH-4142", function () {
+          // Expected Status
+          expect(res.getStatus()).to.equal(200);
+
+          // Valid JSON
           const body = res.getBody();
 
           if (typeof body === "string") {
             expect(() => JSON.parse(body)).to.not.throw();
           } else {
-           expect(body).to.satisfy(
-            value => value !== null && typeof value === "object"
-           );
+            expect(body).to.satisfy(
+              value => value !== null && typeof value === "object"
+            );
           }
-        });
-        test("Response body is an array", function () {
-          const body = res.getBody();
-          const json = typeof body === "string" ? JSON.parse(body) : body;
+
+          // Array Response
+          const json = typeof body === "string"
+            ? JSON.parse(body)
+            : body;
 
           expect(json).to.be.an("array");
         });
+
 
 
 
