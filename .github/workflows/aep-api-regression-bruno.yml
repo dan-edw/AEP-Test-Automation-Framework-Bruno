@@ -617,7 +617,7 @@ jobs:
 
             jq -r '
               .data.getTestRuns.results[] |
-              "\(.test.jira.key)|\(.id)|\(status.name)"
+              "\(.test.jira.key)|\(.id)|\(.status.name)"
             ' xray-test-runs.json
 
             # --------------------------------------------------
