@@ -27,27 +27,70 @@ runtime:
     - type: after-response
       code: |-
         test("CUTECH-4142", function () {
-          // Expected Status
-          expect(res.getStatus()).to.equal(200);
+          const checks = [];
 
-          // Valid JSON
-          const body = res.getBody();
+          function check(name, assertion) {
+            try {
+              assertion();
 
-          if (typeof body === "string") {
-            expect(() => JSON.parse(body)).to.not.throw();
-          } else {
-            expect(body).to.satisfy(
-              value => value !== null && typeof value === "object"
-            );
+              checks.push({
+                name,
+                status: "PASS"
+              });
+            } catch (error) {
+              checks.push({
+                name,
+                status: "FAIL",
+                error: error.message
+              });
+            }
           }
 
-          // Array Response
-          const json = typeof body === "string"
-            ? JSON.parse(body)
-            : body;
+          const body = res.getBody();
 
-          expect(json).to.be.an("array");
+          check("Expected HTTP status is 200", function () {
+            expect(res.getStatus()).to.equal(200);
+          });
+
+          check("Response is valid JSON", function () {
+            if (typeof body === "string") {
+              expect(() => JSON.parse(body)).to.not.throw();
+            } else {
+              expect(body).to.satisfy(
+                value => value !== null && typeof value === "object"
+              );
+            }
+          });
+
+          check("Response results is an array", function () {
+            const json =
+              typeof body === "string"
+                ? JSON.parse(body)
+                : body;
+
+            expect(json.results).to.be.an("array");
+          });
+
+
+          const summary = checks
+            .map(check => {
+              if (check.status === "PASS") {
+                return `PASS: ${check.name}`;
+              }
+
+              return `FAIL: ${check.name}\n  Error: ${check.error}`;
+            })
+            .join("\n");
+
+          const failures = checks.filter(
+            check => check.status === "FAIL"
+          );
+
+          if (failures.length > 0) {
+            throw new Error("\n" + summary);
+          }
         });
+
 
 
 
