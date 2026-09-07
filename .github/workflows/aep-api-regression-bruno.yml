@@ -235,23 +235,6 @@ jobs:
           cat test-results.xml
 
 
-      # ----------------------------------------
-      # 8. Debug
-      # ----------------------------------------
-      
-      - name: Inspect Bruno JSON structure
-        if: always()
-        shell: bash
-        run: |
-          echo "=== Bruno JSON top-level type ==="
-          jq 'type' bruno-results.json
-
-          echo "=== Bruno JSON root keys ==="
-          jq '.[0] | keys' bruno-results.json
-
-          echo "=== First Bruno result keys ==="
-          jq '.[0].results[0] | keys' bruno-results.json
-
 
       
       
@@ -426,6 +409,9 @@ jobs:
 
           # Bruno request-level results
           REQUEST_TOTAL=$(jq '[.[].results[]] | length' bruno-results.json 2>/dev/null || echo "0")
+          REQUEST_PASSED=$(jq '[.[].results[] | select(.status == "pass")] | length' bruno-results.json 2>/dev/null || echo "0")
+          REQUEST_FAILED=$(jq '[.[].results[] | select(.status != "pass")] | length' bruno-results.json 2>/dev/null || echo "0")
+
 
           {
             echo "## 🧪 AEP API Regression"
@@ -436,7 +422,10 @@ jobs:
             echo "| Metric | Result |"
             echo "| :--- | ---: |"
             echo "| 📋 Total Requests | ${REQUEST_TOTAL} |"
+            echo "| ✅ Passed Requests | ${REQUEST_PASSED} |"
+            echo "| ❌ Failed Requests | ${REQUEST_FAILED} |"
             echo ""
+
 
 
             echo "### 🧪 Test / Assertion Summary"
