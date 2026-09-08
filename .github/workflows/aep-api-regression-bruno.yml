@@ -236,8 +236,9 @@ jobs:
           bruno_path = "bruno-results.json"
 
           # --------------------------------------------------
-          # Load Bruno JSON and build:
-          # CUTECH-xxxx -> failed assertions
+          # Load Bruno JSON
+          # Build:
+          # CUTECH-xxxx -> failed assertion details
           # --------------------------------------------------
 
           with open(bruno_path, "r", encoding="utf-8") as f:
@@ -256,18 +257,18 @@ jobs:
 
               test_key = match.group(1)
 
-            assertions = result.get("assertionResults") or []
+              assertions = result.get("assertionResults") or []
 
-            failed = [
+              failed = [
                 assertion
                 for assertion in assertions
                 if assertion.get("status") == "fail"
-            ]
+              ]
 
-            assertion_failures[test_key] = failed
+              assertion_failures[test_key] = failed
 
           # --------------------------------------------------
-          # Transform JUnit
+          # Load JUnit
           # --------------------------------------------------
 
           tree = ET.parse(junit_path)
@@ -276,17 +277,20 @@ jobs:
           kept = 0
           removed = 0
 
+          # --------------------------------------------------
+          # Process each JUnit testsuite
+          # --------------------------------------------------
+
           for testsuite in list(root.findall("testsuite")):
 
-            testcases = list(testsuite.findall("testcase"))
-
-            for testcase in testcases:
+            for testcase in list(testsuite.findall("testcase")):
 
               name = testcase.get("name", "")
 
               match = re.search(r'\b(CUTECH-\d+)\b', name)
 
-              # Remove Bruno declarative assertion JUnit rows.
+              # Remove Bruno declarative assertion rows.
+              # Only keep Jira/Xray mapping testcases.
               if not match:
                 testsuite.remove(testcase)
                 removed += 1
@@ -304,29 +308,32 @@ jobs:
                 properties = ET.Element("properties")
                 testcase.insert(0, properties)
 
-              existing = properties.find(
+              existing_property = properties.find(
                 "./property[@name='test_key']"
               )
 
-              if existing is None:
-                prop = ET.SubElement(
+              if existing_property is None:
+                property_element = ET.SubElement(
                   properties,
                   "property"
                 )
-                prop.set("name", "test_key")
-                prop.set("value", test_key)
+                property_element.set("name", "test_key")
+                property_element.set("value", test_key)
               else:
-                existing.set("value", test_key)
+                existing_property.set("value", test_key)
 
               # --------------------------------------------------
-              # Set JUnit status from THIS request's
-              # declarative assertions
+              # Remove any existing mapping-test failure
               # --------------------------------------------------
 
               existing_failure = testcase.find("failure")
 
               if existing_failure is not None:
                 testcase.remove(existing_failure)
+
+              # --------------------------------------------------
+              # Apply status from this request's assertions
+              # --------------------------------------------------
 
               failed_assertions = assertion_failures.get(
                 test_key,
@@ -339,70 +346,64 @@ jobs:
 
                 for assertion in failed_assertions:
 
-                    lhs = (
-                      assertion.get("lhs")
-                      or assertion.get("lhsExpr")
-                      or assertion.get("expression")
-                      or "Assertion"
-                    )
-
-                    rhs = (
-                      assertion.get("rhs")
-                      or assertion.get("rhsExpr")
-                      or assertion.get("expected")
-                    )
-
-                    description = lhs
-
-                    if rhs is not None:
-                      description += " " + str(rhs)
-
-                    error = assertion.get("error")
-
-                    if isinstance(error, dict):
-                      error_message = error.get("message")
-                    elif isinstance(error, str):
-                      error_message = error
-                    else:
-                      error_message = None
-
-                    if error_message:
-                      description += ": " + error_message
-
-                    descriptions.append(description)
-
-                  failure_message = (
-                    f"{len(failed_assertions)} "
-                    "declarative assertion(s) failed"
+                  lhs = (
+                    assertion.get("lhs")
+                    or assertion.get("lhsExpr")
+                    or assertion.get("expression")
+                    or "Assertion"
                   )
 
-                  failure = ET.Element("failure")
-                  failure.set(
-                    "message",
-                    failure_message
+                  rhs = (
+                    assertion.get("rhs")
+                    or assertion.get("rhsExpr")
+                    or assertion.get("expected")
                   )
 
-                  failure.text = "\n".join(descriptions)
+                  description = lhs
 
-                  testcase.append(failure)
+                  if rhs is not None:
+                     description += " " + str(rhs)
 
-                  print(
-                    f"FAILED {test_key}: "
-                    f"{len(failed_assertions)} assertion(s)"
-                  )
+                  error = assertion.get("error")
 
-                else:
+                  if isinstance(error, dict):
+                    error_message = error.get("message")
+                  elif isinstance(error, str):
+                    error_message = error
+                  else:
+                    error_message = None
 
-                  print(
-                    f"PASSED {test_key}: "
-                    "all declarative assertions passed"
-                  )
+                  if error_message:
+                    description += ": " + error_message
 
-                print(
-                  f"Mapped {name} -> {test_key}"
+                  descriptions.append(description)
+
+               failure = ET.SubElement(
+                  testcase,
+                  "failure"
                 )
 
-                kept += 1
+                failure.set(
+                  "message",
+                  f"{len(failed_assertions)} declarative assertion(s) failed"
+                )
+
+                failure.text = "\n".join(descriptions)
+
+                print(
+                  f"FAILED {test_key}: "
+                  f"{len(failed_assertions)} assertion(s)"
+                )
+
+               else:
+                print(
+                  f"PASSED {test_key}: "
+                  "all declarative assertions passed"
+                )
+
+               print(f"Mapped {name} -> {test_key}")
+
+               kept += 1
 
               # --------------------------------------------------
               # Recalculate suite counts
@@ -454,11 +455,18 @@ jobs:
                 str(skipped)
               )
 
+            # --------------------------------------------------
+            # Validation
+            # --------------------------------------------------
+
             if kept == 0:
               raise SystemExit(
-                "ERROR: No Jira/Xray testcase keys "
-                "were found in JUnit"
+                "ERROR: No Jira/Xray testcase keys were found in JUnit"
               )
+
+            # --------------------------------------------------
+            # Write transformed JUnit
+            # --------------------------------------------------
 
             tree.write(
               junit_path,
@@ -468,10 +476,7 @@ jobs:
 
             print("")
             print(f"Xray testcases kept: {kept}")
-            print(
-              "Bruno assertion testcases removed: "
-              f"{removed}"
-            )
+            print(f"Bruno assertion testcases removed: {removed}")
 
             PY
 
@@ -481,7 +486,7 @@ jobs:
 
 
 
-      
+
       # ----------------------------------------
       # 9. Authenticate with Xray Cloud
       # ----------------------------------------
@@ -622,97 +627,13 @@ jobs:
           fi
 
 
-      # ----------------------------------------
-      # 12. Regression Summary
-      # ----------------------------------------
-
-      - name: Regression Summary
-        if: always()
-        shell: bash
-        run: |
-          ENVIRONMENT="${{ github.event.inputs.environment || 'dev' }}"
-          XRAY_EXECUTION_KEY="${{ steps.publish-xray.outputs.XRAY_EXECUTION_KEY }}"
-
-          # -----------------------------
-          # Test Case counts from JUnit
-          # -----------------------------
-
-          TEST_CASE_TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
-
-          TEST_CASE_FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
-
-          TEST_CASE_PASSED=$((TEST_CASE_TOTAL - TEST_CASE_FAILED))
-
-
-          # -----------------------------
-          # Assertion counts from Bruno JSON
-          # -----------------------------
-
-          ASSERTION_TOTAL=$(jq '
-            [.[].results[].assertionResults[]?]
-            | length
-          ' bruno-results.json)
-
-          ASSERTION_PASSED=$(jq '
-            [
-              .[].results[].assertionResults[]?
-              | select(.status == "pass")
-            ]
-            | length
-          ' bruno-results.json)
-
-          ASSERTION_FAILED=$(jq '
-            [
-              .[].results[].assertionResults[]?
-              | select(.status == "fail")
-            ]
-            | length
-          ' bruno-results.json)
-
-
-          # -----------------------------
-          # GitHub Summary
-          # -----------------------------
-
-          {
-            echo "## 🧪 AEP API Regression Summary"
-            echo ""
-
-            echo "### ⚙️ Execution Configuration"
-            echo ""
-            echo "| Configuration | Value |"
-            echo "| --- | --- |"
-            echo "| Environment | $ENVIRONMENT |"
-            echo "| Collection | aep-regression |"
-            echo "| Framework | Bruno CLI 4.1.0 |"
-            echo "| Runner | GitHub-hosted Ubuntu |"
-            echo "| Xray Test Execution | ${XRAY_EXECUTION_KEY:-N/A} |"
-            echo ""
-
-            echo "### Test Cases"
-            echo ""
-            echo "| Metric | Result |"
-            echo "| --- | ---: |"
-            echo "| 📋 Total Test Cases | $TEST_CASE_TOTAL |"
-            echo "| ✅ Passed Test Cases | $TEST_CASE_PASSED |"
-            echo "| ❌ Failed Test Cases | $TEST_CASE_FAILED |"
-            echo ""
-
-            echo "### Assertions"
-            echo ""
-            echo "| Metric | Result |"
-            echo "| --- | ---: |"
-            echo "| 📋 Total Assertions | $ASSERTION_TOTAL |"
-            echo "| ✅ Passed Assertions | $ASSERTION_PASSED |"
-            echo "| ❌ Failed Assertions | $ASSERTION_FAILED |"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
+      
 
 
 
       
       # ----------------------------------------
-      # 13. Add actual results / failure details to Xray Test Runs
+      # 12. Add actual results / failure details to Xray Test Runs
       # ----------------------------------------
 
       - name: Update Xray Test Run Results
@@ -1040,7 +961,91 @@ jobs:
               echo "All Xray Test Run comments were updated successfully."
 
 
-      
+      # ----------------------------------------
+      # 13. Regression Summary
+      # ----------------------------------------
+
+      - name: Regression Summary
+        if: always()
+        shell: bash
+        run: |
+          ENVIRONMENT="${{ github.event.inputs.environment || 'dev' }}"
+          XRAY_EXECUTION_KEY="${{ steps.publish-xray.outputs.XRAY_EXECUTION_KEY }}"
+
+          # -----------------------------
+          # Test Case counts from JUnit
+          # -----------------------------
+
+          TEST_CASE_TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
+
+          TEST_CASE_FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
+
+          TEST_CASE_PASSED=$((TEST_CASE_TOTAL - TEST_CASE_FAILED))
+
+
+          # -----------------------------
+          # Assertion counts from Bruno JSON
+          # -----------------------------
+
+          ASSERTION_TOTAL=$(jq '
+            [.[].results[].assertionResults[]?]
+            | length
+          ' bruno-results.json)
+
+          ASSERTION_PASSED=$(jq '
+            [
+              .[].results[].assertionResults[]?
+              | select(.status == "pass")
+            ]
+            | length
+          ' bruno-results.json)
+
+          ASSERTION_FAILED=$(jq '
+            [
+              .[].results[].assertionResults[]?
+              | select(.status == "fail")
+            ]
+            | length
+          ' bruno-results.json)
+
+
+          # -----------------------------
+          # GitHub Summary
+          # -----------------------------
+
+          {
+            echo "## 🧪 AEP API Regression Summary"
+            echo ""
+
+            echo "### ⚙️ Execution Configuration"
+            echo ""
+            echo "| Configuration | Value |"
+            echo "| --- | --- |"
+            echo "| Environment | $ENVIRONMENT |"
+            echo "| Collection | aep-regression |"
+            echo "| Framework | Bruno CLI 4.1.0 |"
+            echo "| Runner | GitHub-hosted Ubuntu |"
+            echo "| Xray Test Execution | ${XRAY_EXECUTION_KEY:-N/A} |"
+            echo ""
+
+            echo "### Test Cases"
+            echo ""
+            echo "| Metric | Result |"
+            echo "| --- | ---: |"
+            echo "| 📋 Total Test Cases | $TEST_CASE_TOTAL |"
+            echo "| ✅ Passed Test Cases | $TEST_CASE_PASSED |"
+            echo "| ❌ Failed Test Cases | $TEST_CASE_FAILED |"
+            echo ""
+
+            echo "### Assertions"
+            echo ""
+            echo "| Metric | Result |"
+            echo "| --- | ---: |"
+            echo "| 📋 Total Assertions | $ASSERTION_TOTAL |"
+            echo "| ✅ Passed Assertions | $ASSERTION_PASSED |"
+            echo "| ❌ Failed Assertions | $ASSERTION_FAILED |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
 
 
       # ----------------------------------------
