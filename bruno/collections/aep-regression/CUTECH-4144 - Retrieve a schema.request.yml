@@ -32,6 +32,9 @@ runtime:
       operator: eq
       value: "200"
 
+    - expression: res.body
+      operator: isJson
+
   scripts:
     - type: tests
       code: |-
