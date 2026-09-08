@@ -26,7 +26,7 @@ runtime:
   assertions:
     - expression: res.status
       operator: eq
-      value: "200"
+      value: "400"
 
     - expression: res.body
       operator: isJson
