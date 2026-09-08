@@ -754,25 +754,18 @@ jobs:
                         )
                         + ": "
                         + (
-                            .lhs
-                            // .lhsExpr
-                            // .expression
-                            // "Assertion"
-                          )
+                          .lhs
+                          // .lhsExpr
+                          // .expression
+                          // "Assertion"
+                        )
                         + (
-                            if (.operator // "") != "" then
-                              " " + (.operator | tostring)
-                            else
-                              ""
-                            end
-                          )
-                        + (
-                            if (.rhs // .rhsExpr // .expected // null) != null then
-                              " " + ((.rhs // .rhsExpr // .expected) | tostring)
-                            else
-                              ""
-                            end
-                          )
+                          if (.rhs // .rhsExpr // .expected // null) != null then
+                          " " + ((.rhs // .rhsExpr // .expected) | tostring)
+                          else
+                          ""
+                          end
+                        )
                         + (
                             if (.error.message? // "") != "" then
                               "\n  Error: " + .error.message
