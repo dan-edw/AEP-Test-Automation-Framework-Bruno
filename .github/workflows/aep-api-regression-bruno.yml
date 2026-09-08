@@ -242,64 +242,68 @@ jobs:
           for testsuite in list(root.findall("testsuite")):
             testcases = list(testsuite.findall("testcase"))
 
-          for testcase in testcases:
-            name = testcase.get("name", "")
+            for testcase in testcases:
+              name = testcase.get("name", "")
 
-            match = re.search(r'\b(CUTECH-\d+)\b', name)
+              match = re.search(r'\b(CUTECH-\d+)\b', name)
 
-            # Declarative Bruno assertions become separate JUnit
-            # testcases. Do NOT send those to Xray.
-            if not match:
+              # Remove Bruno declarative assertion rows from the JUnit
+              # that will be sent to Xray.
+              if not match:
                 testsuite.remove(testcase)
                 removed += 1
                 continue
 
-            test_key = match.group(1)
+              test_key = match.group(1)
 
-            properties = testcase.find("properties")
-            if properties is None:
+              properties = testcase.find("properties")
+
+              if properties is None:
                 properties = ET.Element("properties")
                 testcase.insert(0, properties)
 
-            existing = properties.find("./property[@name='test_key']")
+              existing = properties.find("./property[@name='test_key']")
 
-            if existing is None:
+              if existing is None:
                 prop = ET.SubElement(properties, "property")
                 prop.set("name", "test_key")
                 prop.set("value", test_key)
-            else:
+              else:
                 existing.set("value", test_key)
 
-            print(f"Mapped {name} -> {test_key}")
-            kept += 1
+              print(f"Mapped {name} -> {test_key}")
+              kept += 1
 
-          # Remove empty suites created only for assertions
-          remaining = list(testsuite.findall("testcase"))
+            # Recalculate this suite after removing assertion-generated rows
+            remaining = list(testsuite.findall("testcase"))
 
-          if not remaining:
-            root.remove(testsuite)
-            continue
+            # If the suite contained only Bruno assertions, remove the suite
+            if not remaining:
+              root.remove(testsuite)
+              continue
 
-          # Keep JUnit suite counts accurate
-          failures = sum(
-            1 for testcase in remaining
-            if testcase.find("failure") is not None
-          )
+            failures = sum(
+              1
+              for testcase in remaining
+              if testcase.find("failure") is not None
+            )
 
-          errors = sum(
-            1 for testcase in remaining
-            if testcase.find("error") is not None
-          )
+            errors = sum(
+              1
+              for testcase in remaining
+              if testcase.find("error") is not None
+            )
 
-          skipped = sum(
-            1 for testcase in remaining
-            if testcase.find("skipped") is not None
-          )
+            skipped = sum(
+              1
+              for testcase in remaining
+              if testcase.find("skipped") is not None
+            )
 
-          testsuite.set("tests", str(len(remaining)))
-          testsuite.set("failures", str(failures))
-          testsuite.set("errors", str(errors))
-          testsuite.set("skipped", str(skipped))
+            testsuite.set("tests", str(len(remaining)))
+            testsuite.set("failures", str(failures))
+            testsuite.set("errors", str(errors))
+            testsuite.set("skipped", str(skipped))
 
           if kept == 0:
             raise SystemExit(
