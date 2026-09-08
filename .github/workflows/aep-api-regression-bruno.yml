@@ -476,15 +476,8 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [ ! -f "test-results.xml" ]; then
-            echo "No JUnit report found."
-            exit 0
-          fi
-
-          if [ ! -f "bruno-results.json" ]; then
-            echo "No Bruno JSON report found."
-            exit 0
-          fi
+          ENVIRONMENT="${{ github.event.inputs.environment || 'dev' }}"
+          XRAY_EXECUTION_KEY="${{ steps.publish-xray.outputs.XRAY_EXECUTION_KEY }}"
 
           # -----------------------------
           # Test Case counts from JUnit
@@ -528,7 +521,18 @@ jobs:
           # -----------------------------
 
           {
-            echo "## 🧪 Regression Summary"
+            echo "## 🧪 AEP API Regression Summary"
+            echo ""
+
+            echo "### ⚙️ Execution Configuration"
+            echo ""
+            echo "| Configuration | Value |"
+            echo "| --- | --- |"
+            echo "| Environment | $ENVIRONMENT |"
+            echo "| Collection | aep-regression |"
+            echo "| Framework | Bruno CLI 4.1.0 |"
+            echo "| Runner | GitHub-hosted Ubuntu |"
+            echo "| Xray Test Execution | ${XRAY_EXECUTION_KEY:-N/A} |"
             echo ""
 
             echo "### Test Cases"
@@ -550,13 +554,6 @@ jobs:
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "Test Cases: $TEST_CASE_TOTAL"
-          echo "Passed Test Cases: $TEST_CASE_PASSED"
-          echo "Failed Test Cases: $TEST_CASE_FAILED"
-
-          echo "Assertions: $ASSERTION_TOTAL"
-          echo "Passed Assertions: $ASSERTION_PASSED"
-          echo "Failed Assertions: $ASSERTION_FAILED"
 
 
       
