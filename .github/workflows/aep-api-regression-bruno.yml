@@ -444,7 +444,7 @@ jobs:
        
 
           # --------------------------------------------------
-          # Save values for Step 14
+          # Save values for Step 12
           # --------------------------------------------------
 
           XRAY_EXECUTION_KEY=$(jq -r '.key // empty' xray-import-response.json)
@@ -699,39 +699,6 @@ jobs:
               # Collect Bruno post-response test results
               # --------------------------------------------------
 
-              TEST_DETAILS=$(echo "$RESULT" | jq -r '
-                (
-                  (.postResponseTestResults // []) +
-                  (.testResults // []) +
-                  (.assertionResults // [])
-                )
-                | if length == 0 then
-                   "No assertion details captured"
-                  else
-                    map(
-                      (
-                        if (.status // "") == "pass" then "PASS"
-                        elif (.status // "") == "fail" then "FAIL"
-                        else (.status // "UNKNOWN" | ascii_upcase)
-                        end
-                      )
-                      + ": "
-                      + (.name // .description // .message // "Unnamed check")
-                      +
-                      (
-                        if (.error.message? // "") != "" then
-                          "\n  Error: " + .error.message
-                        elif (.error? | type) == "string" and .error != "" then
-                          "\n  Error: " + .error
-                        else
-                          ""
-                        end
-                      )
-                    )
-                    | join("\n")
-                  end
-                ')
-
                 TEST_RUN_ID=$(jq -r \
                   --arg key "$TEST_KEY" '
                     .data.getTestRuns.results[]
@@ -770,61 +737,60 @@ jobs:
                 echo "=== Assertion JSON for $TEST_KEY ==="
                 echo "$RESULT" | jq '.assertionResults // []'
 
-                ASSERTION_DETAILS="$(
-                  echo "$RESULT" | jq -r '
-                    (.assertionResults // [])
-                    | if length == 0 then
+                ASSERTION_DETAILS=$(echo "$RESULT" | jq -r '
+                  (.assertionResults // [])
+                  | if length == 0 then
                       "No declarative assertions captured"
-                     else
+                    else
                       map(
-                      (
-                        if (.status // "") == "pass" then
-                          "PASS"
-                        elif (.status // "") == "fail" then
-                          "FAIL"
-                        else
-                          (.status // "UNKNOWN" | ascii_upcase)
-                        end
+                        (
+                          if (.status // "") == "pass" then
+                            "PASS"
+                          elif (.status // "") == "fail" then
+                            "FAIL"
+                          else
+                            (.status // "UNKNOWN" | ascii_upcase)
+                          end
+                        )
+                        + ": "
+                        + (
+                            .lhs
+                            // .lhsExpr
+                            // .expression
+                            // "Assertion"
+                          )
+                        + (
+                            if (.operator // "") != "" then
+                              " " + (.operator | tostring)
+                            else
+                              ""
+                            end
+                          )
+                        + (
+                            if (.rhs // .rhsExpr // .expected // null) != null then
+                              " " + ((.rhs // .rhsExpr // .expected) | tostring)
+                            else
+                              ""
+                            end
+                          )
+                        + (
+                            if (.error.message? // "") != "" then
+                              "\n  Error: " + .error.message
+                            elif (.error? | type) == "string" and .error != "" then
+                              "\n  Error: " + .error
+                            else
+                              ""
+                            end
+                          )
                       )
-                      + ": "
-                      + (
-                        .lhs //
-                        .lhsExpr //
-                        .expression //
-                        "Assertion"
-                      )
-                      + (
-                        if (.operator // "") != "" then
-                          " " + (.operator | tostring)
-                        else
-                          ""
-                        end
-                      )
-                      + (
-                        if (.rhs // .rhsExpr // .expected // null) != null then
-                          " " + ((.rhs // .rhsExpr // .expected) | tostring)
-                        else
-                          ""
-                        end
-                      )
-                      + (
-                        if (.error.message? // "") != "" then
-                          "\n  Error: " + .error.message
-                        elif (.error? | type) == "string" and .error != "" then
-                          "\n  Error: " + .error
-                        else
-                          ""
-                        end
-                      )
-                    )
-                    | join("\n")
+                      | join("\n")
                     end
-                  '
-                )"
+                ')
 
                 echo ""
-                echo "=== Parsed assertions for $TEST_KEY ==="
+                echo "=== Parsed Assertions for $TEST_KEY ==="
                 printf '%s\n' "$ASSERTION_DETAILS"
+
 
 
                 # --------------------------------------------------
@@ -847,13 +813,13 @@ jobs:
                   "" \
                   "Assertions:" \
                   "$ASSERTION_DETAILS" \
-
                   "" \
                   "Source: GitHub Actions / Bruno CLI")
 
                 echo ""
-                echo "=== Assertion JSON for $TEST_KEY ==="
-                echo "$RESULT" | jq '.assertionResults'
+                echo "=== Comment for $TEST_KEY ==="
+                printf '%s\n' "$COMMENT"
+
 
 
                 # --------------------------------------------------
