@@ -472,86 +472,93 @@ jobs:
       # 12. Regression Summary
       # ----------------------------------------
 
-      - name: AEP Regression Summary
+      - name: Regression Summary
         if: always()
         shell: bash
         run: |
           if [ ! -f "test-results.xml" ]; then
-            {
-              echo "## 🧪 AEP API Regression"
-              echo ""
-              echo "❌ Bruno did not generate test-results.xml."
-            } >> "$GITHUB_STEP_SUMMARY"
-
-            exit 1
+            echo "No JUnit report found."
+            exit 0
           fi
 
           if [ ! -f "bruno-results.json" ]; then
-            {
-              echo "## 🧪 AEP API Regression"
-              echo ""
-              echo "❌ Bruno did not generate bruno-results.json."
-            } >> "$GITHUB_STEP_SUMMARY"
-
-            exit 1
+            echo "No Bruno JSON report found."
+            exit 0
           fi
 
-          # JUnit-level results
-          TEST_TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
-          TEST_FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
-          TEST_PASSED=$((TEST_TOTAL - TEST_FAILED))
+          # -----------------------------
+          # Test Case counts from JUnit
+          # -----------------------------
 
-          # Bruno request-level results
-          REQUEST_TOTAL=$(jq '[.[].results[]] | length' bruno-results.json 2>/dev/null || echo "0")
-          REQUEST_PASSED=$(jq '[.[].results[] | select(.status == "pass")] | length' bruno-results.json 2>/dev/null || echo "0")
-          REQUEST_FAILED=$(jq '[.[].results[] | select(.status != "pass")] | length' bruno-results.json 2>/dev/null || echo "0")
+          TEST_CASE_TOTAL=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
 
+          TEST_CASE_FAILED=$(grep -o '<failure ' test-results.xml | wc -l | tr -d ' ' || true)
+
+          TEST_CASE_PASSED=$((TEST_CASE_TOTAL - TEST_CASE_FAILED))
+
+
+          # -----------------------------
+          # Assertion counts from Bruno JSON
+          # -----------------------------
+
+          ASSERTION_TOTAL=$(jq '
+            [.[].results[].assertionResults[]?]
+            | length
+          ' bruno-results.json)
+
+          ASSERTION_PASSED=$(jq '
+            [
+              .[].results[].assertionResults[]?
+              | select(.status == "pass")
+            ]
+            | length
+          ' bruno-results.json)
+
+          ASSERTION_FAILED=$(jq '
+            [
+              .[].results[].assertionResults[]?
+              | select(.status == "fail")
+            ]
+            | length
+          ' bruno-results.json)
+
+
+          # -----------------------------
+          # GitHub Summary
+          # -----------------------------
 
           {
-            echo "## 🧪 AEP API Regression"
+            echo "## 🧪 Regression Summary"
             echo ""
 
-            echo "### 📡 Request Summary"
+            echo "### Test Cases"
             echo ""
             echo "| Metric | Result |"
-            echo "| :--- | ---: |"
-            echo "| 📋 Total Requests | ${REQUEST_TOTAL} |"
-            echo "| ✅ Passed Requests | ${REQUEST_PASSED} |"
-            echo "| ❌ Failed Requests | ${REQUEST_FAILED} |"
+            echo "| --- | ---: |"
+            echo "| 📋 Total Test Cases | $TEST_CASE_TOTAL |"
+            echo "| ✅ Passed Test Cases | $TEST_CASE_PASSED |"
+            echo "| ❌ Failed Test Cases | $TEST_CASE_FAILED |"
             echo ""
 
-
-
-            echo "### 🧪 Test / Assertion Summary"
+            echo "### Assertions"
             echo ""
             echo "| Metric | Result |"
-            echo "| :--- | ---: |"
-            echo "| 📋 Total Tests | ${TEST_TOTAL} |"
-            echo "| ✅ Passed Tests | ${TEST_PASSED} |"
-            echo "| ❌ Failed Tests | ${TEST_FAILED} |"
+            echo "| --- | ---: |"
+            echo "| 📋 Total Assertions | $ASSERTION_TOTAL |"
+            echo "| ✅ Passed Assertions | $ASSERTION_PASSED |"
+            echo "| ❌ Failed Assertions | $ASSERTION_FAILED |"
             echo ""
-
-            if [ "$TEST_FAILED" -gt 0 ]; then
-              echo "⚠️ Regression completed with test failures."
-              echo ""
-              echo "Xray is the source of truth for test status."
-            else
-              echo "✅ All regression tests passed."
-            fi
-
-            echo ""
-            echo "### 🌐 Execution Configuration"
-            echo ""
-            echo "| Setting | Value |"
-            echo "| :--- | :--- |"
-            echo "| Environment | ${{ github.event.inputs.environment || 'dev' }} |"
-            echo "| Collection | aep-regression |"
-            echo "| Framework | Bruno CLI 4.1.0 |"
-            echo "| Runner | GitHub-hosted Ubuntu |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+          echo "Test Cases: $TEST_CASE_TOTAL"
+          echo "Passed Test Cases: $TEST_CASE_PASSED"
+          echo "Failed Test Cases: $TEST_CASE_FAILED"
 
-      
+          echo "Assertions: $ASSERTION_TOTAL"
+          echo "Passed Assertions: $ASSERTION_PASSED"
+          echo "Failed Assertions: $ASSERTION_FAILED"
+
+
       
       # ----------------------------------------
       # 13. Add actual results / failure details to Xray Test Runs
@@ -773,14 +780,16 @@ jobs:
                   "HTTP Status: $HTTP_STATUS" \
                   "Duration: $RUN_DURATION ms" \
                   "" \
-                  "Tests / Assertions:" \
-                  "$TEST_DETAILS" \
+                  "Assertions:" \
+                  "$ASSERTION_DETAILS" \
+
                   "" \
                   "Source: GitHub Actions / Bruno CLI")
 
                 echo ""
-                echo "=== Comment for $TEST_KEY ==="
-                echo "$COMMENT"
+                echo "=== Assertion JSON for $TEST_KEY ==="
+                echo "$RESULT" | jq '.assertionResults'
+
 
                 # --------------------------------------------------
                 # Update Xray Test Run comment

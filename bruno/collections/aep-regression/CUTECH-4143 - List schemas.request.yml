@@ -26,12 +26,18 @@ http:
 
     
 runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
   scripts:
-    - type: after-response
+    - type: tests
       code: |-
         test("CUTECH-4143", function () {
           expect(res.getStatus()).to.equal(200);
         });
+
 
 settings:
   encodeUrl: true

@@ -20,8 +20,13 @@ http:
   auth: inherit
 
 runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
   scripts:
-    - type: after-response
+    - type: tests
       code: |-
         test("CUTECH-4147", function () {
           expect(res.getStatus()).to.equal(200);
