@@ -36,11 +36,23 @@ runtime:
       operator: isJson
 
   scripts:
-    - type: tests
-      code: |-
-        test("CUTECH-4145", function () {
-          expect(res.getStatus()).to.equal(200);
-        });
+  - type: tests
+    code: |-
+      test("CUTECH-4145", function () {
+        const assertions = bru.getAssertionResults();
+
+        const failedAssertions = assertions.filter(
+          assertion => assertion.status === "fail"
+        );
+
+        if (failedAssertions.length > 0) {
+          throw new Error(
+            failedAssertions.length +
+            " declarative assertion(s) failed"
+          );
+        }
+      });
+
 
 settings:
   encodeUrl: true
