@@ -763,6 +763,71 @@ jobs:
                 fi
 
                 # --------------------------------------------------
+                # Build assertion details from Bruno JSON
+                # --------------------------------------------------
+
+                echo ""
+                echo "=== Assertion JSON for $TEST_KEY ==="
+                echo "$RESULT" | jq '.assertionResults // []'
+
+                ASSERTION_DETAILS="$(
+                  echo "$RESULT" | jq -r '
+                    (.assertionResults // [])
+                    | if length == 0 then
+                      "No declarative assertions captured"
+                     else
+                      map(
+                      (
+                        if (.status // "") == "pass" then
+                          "PASS"
+                        elif (.status // "") == "fail" then
+                          "FAIL"
+                        else
+                          (.status // "UNKNOWN" | ascii_upcase)
+                        end
+                      )
+                      + ": "
+                      + (
+                        .lhs //
+                        .lhsExpr //
+                        .expression //
+                        "Assertion"
+                      )
+                      + (
+                        if (.operator // "") != "" then
+                          " " + (.operator | tostring)
+                        else
+                          ""
+                        end
+                      )
+                      + (
+                        if (.rhs // .rhsExpr // .expected // null) != null then
+                          " " + ((.rhs // .rhsExpr // .expected) | tostring)
+                        else
+                          ""
+                        end
+                      )
+                      + (
+                        if (.error.message? // "") != "" then
+                          "\n  Error: " + .error.message
+                        elif (.error? | type) == "string" and .error != "" then
+                          "\n  Error: " + .error
+                        else
+                          ""
+                        end
+                      )
+                    )
+                    | join("\n")
+                    end
+                  '
+                )"
+
+                echo ""
+                echo "=== Parsed assertions for $TEST_KEY ==="
+                printf '%s\n' "$ASSERTION_DETAILS"
+
+
+                # --------------------------------------------------
                 # Build Test Run comment
                 # --------------------------------------------------
 
