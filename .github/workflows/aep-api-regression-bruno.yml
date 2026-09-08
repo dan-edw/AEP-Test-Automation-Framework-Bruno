@@ -228,27 +228,65 @@ jobs:
         shell: bash
         run: |
           python3 <<'PY'
+          import json
           import re
           import xml.etree.ElementTree as ET
 
-          path = "test-results.xml"
+          junit_path = "test-results.xml"
+          bruno_path = "bruno-results.json"
 
-          tree = ET.parse(path)
+          # --------------------------------------------------
+          # Load Bruno JSON and build:
+          # CUTECH-xxxx -> failed assertions
+          # --------------------------------------------------
+
+          with open(bruno_path, "r", encoding="utf-8") as f:
+            bruno_data = json.load(f)
+
+          assertion_failures = {}
+
+          for iteration in bruno_data:
+            for result in iteration.get("results", []):
+              name = result.get("name", "")
+
+              match = re.search(r'\b(CUTECH-\d+)\b', name)
+
+              if not match:
+                continue
+
+              test_key = match.group(1)
+
+            assertions = result.get("assertionResults") or []
+
+            failed = [
+                assertion
+                for assertion in assertions
+                if assertion.get("status") == "fail"
+            ]
+
+            assertion_failures[test_key] = failed
+
+          # --------------------------------------------------
+          # Transform JUnit
+          # --------------------------------------------------
+
+          tree = ET.parse(junit_path)
           root = tree.getroot()
 
           kept = 0
           removed = 0
 
           for testsuite in list(root.findall("testsuite")):
+
             testcases = list(testsuite.findall("testcase"))
 
             for testcase in testcases:
+
               name = testcase.get("name", "")
 
               match = re.search(r'\b(CUTECH-\d+)\b', name)
 
-              # Remove Bruno declarative assertion rows from the JUnit
-              # that will be sent to Xray.
+              # Remove Bruno declarative assertion JUnit rows.
               if not match:
                 testsuite.remove(testcase)
                 removed += 1
@@ -256,74 +294,190 @@ jobs:
 
               test_key = match.group(1)
 
+              # --------------------------------------------------
+              # Add Xray test_key property
+              # --------------------------------------------------
+
               properties = testcase.find("properties")
 
               if properties is None:
                 properties = ET.Element("properties")
                 testcase.insert(0, properties)
 
-              existing = properties.find("./property[@name='test_key']")
+              existing = properties.find(
+                "./property[@name='test_key']"
+              )
 
               if existing is None:
-                prop = ET.SubElement(properties, "property")
+                prop = ET.SubElement(
+                  properties,
+                  "property"
+                )
                 prop.set("name", "test_key")
                 prop.set("value", test_key)
               else:
                 existing.set("value", test_key)
 
-              print(f"Mapped {name} -> {test_key}")
-              kept += 1
+              # --------------------------------------------------
+              # Set JUnit status from THIS request's
+              # declarative assertions
+              # --------------------------------------------------
 
-            # Recalculate this suite after removing assertion-generated rows
-            remaining = list(testsuite.findall("testcase"))
+              existing_failure = testcase.find("failure")
 
-            # If the suite contained only Bruno assertions, remove the suite
-            if not remaining:
-              root.remove(testsuite)
-              continue
+              if existing_failure is not None:
+                testcase.remove(existing_failure)
 
-            failures = sum(
-              1
-              for testcase in remaining
-              if testcase.find("failure") is not None
+              failed_assertions = assertion_failures.get(
+                test_key,
+                []
+              )
+
+              if failed_assertions:
+
+                descriptions = []
+
+                for assertion in failed_assertions:
+
+                    lhs = (
+                      assertion.get("lhs")
+                      or assertion.get("lhsExpr")
+                      or assertion.get("expression")
+                      or "Assertion"
+                    )
+
+                    rhs = (
+                      assertion.get("rhs")
+                      or assertion.get("rhsExpr")
+                      or assertion.get("expected")
+                    )
+
+                    description = lhs
+
+                    if rhs is not None:
+                      description += " " + str(rhs)
+
+                    error = assertion.get("error")
+
+                    if isinstance(error, dict):
+                      error_message = error.get("message")
+                    elif isinstance(error, str):
+                      error_message = error
+                    else:
+                      error_message = None
+
+                    if error_message:
+                      description += ": " + error_message
+
+                    descriptions.append(description)
+
+                  failure_message = (
+                    f"{len(failed_assertions)} "
+                    "declarative assertion(s) failed"
+                  )
+
+                  failure = ET.Element("failure")
+                  failure.set(
+                    "message",
+                    failure_message
+                  )
+
+                  failure.text = "\n".join(descriptions)
+
+                  testcase.append(failure)
+
+                  print(
+                    f"FAILED {test_key}: "
+                    f"{len(failed_assertions)} assertion(s)"
+                  )
+
+                else:
+
+                  print(
+                    f"PASSED {test_key}: "
+                    "all declarative assertions passed"
+                  )
+
+                print(
+                  f"Mapped {name} -> {test_key}"
+                )
+
+                kept += 1
+
+              # --------------------------------------------------
+              # Recalculate suite counts
+              # --------------------------------------------------
+
+              remaining = list(
+                testsuite.findall("testcase")
+              )
+
+              if not remaining:
+                root.remove(testsuite)
+                continue
+
+              failures = sum(
+                1
+                for testcase in remaining
+                if testcase.find("failure") is not None
+              )
+
+              errors = sum(
+                1
+                for testcase in remaining
+                if testcase.find("error") is not None
+              )
+
+              skipped = sum(
+                1
+                for testcase in remaining
+                if testcase.find("skipped") is not None
+              )
+
+              testsuite.set(
+                "tests",
+                str(len(remaining))
+              )
+
+              testsuite.set(
+                "failures",
+                str(failures)
+              )
+
+              testsuite.set(
+                "errors",
+                str(errors)
+              )
+
+              testsuite.set(
+                "skipped",
+                str(skipped)
+              )
+
+            if kept == 0:
+              raise SystemExit(
+                "ERROR: No Jira/Xray testcase keys "
+                "were found in JUnit"
+              )
+
+            tree.write(
+              junit_path,
+              encoding="utf-8",
+              xml_declaration=True
             )
 
-            errors = sum(
-              1
-              for testcase in remaining
-              if testcase.find("error") is not None
+            print("")
+            print(f"Xray testcases kept: {kept}")
+            print(
+              "Bruno assertion testcases removed: "
+              f"{removed}"
             )
 
-            skipped = sum(
-              1
-              for testcase in remaining
-              if testcase.find("skipped") is not None
-            )
+            PY
 
-            testsuite.set("tests", str(len(remaining)))
-            testsuite.set("failures", str(failures))
-            testsuite.set("errors", str(errors))
-            testsuite.set("skipped", str(skipped))
-
-          if kept == 0:
-            raise SystemExit(
-              "ERROR: No Jira/Xray testcase keys were found in JUnit"
-            )
-
-          tree.write(
-            path,
-            encoding="utf-8",
-            xml_declaration=True
-          )
-
-          print("")
-          print(f"Xray testcases kept: {kept}")
-          print(f"Bruno assertion testcases removed: {removed}")
-          PY
-
-          echo ""
-          echo "=== Xray-ready JUnit ==="
-          cat test-results.xml
+            echo ""
+            echo "=== Xray-ready JUnit ==="
+            cat test-results.xml
 
 
 
