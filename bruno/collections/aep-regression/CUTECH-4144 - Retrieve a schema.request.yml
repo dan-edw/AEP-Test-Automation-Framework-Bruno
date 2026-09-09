@@ -30,7 +30,7 @@ runtime:
   assertions:
     - expression: res.status
       operator: eq
-      value: "400"
+      value: "200"
 
     - expression: res.body
       operator: isJson
