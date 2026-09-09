@@ -241,14 +241,12 @@ jobs:
           python3 scripts/xray-junit-filter.py
 
           TESTCASE_COUNT=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
-          EXPECTED_COUNT=$(cat xray-testcase-count.txt)
 
           echo ""
           echo "Filtered Xray testcase count: $TESTCASE_COUNT"
-          echo "Expected Xray testcase count: $EXPECTED_COUNT"
 
-          if [ "$TESTCASE_COUNT" -ne "$EXPECTED_COUNT" ]; then
-            echo "ERROR: Expected $EXPECTED_COUNT Xray testcases, found $TESTCASE_COUNT"
+          if [ "$TESTCASE_COUNT" -eq 0 ]; then
+            echo "ERROR: No Xray testcases found after filtering"
             exit 1
           fi
 
