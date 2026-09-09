@@ -12,6 +12,9 @@ BRUNO_PATH = "bruno-results.json"
 #
 # Build:
 # CUTECH-xxxx -> failed/error assertion details
+#
+# Also collect the expected Jira/Xray test keys
+# independently from Bruno JSON.
 # --------------------------------------------------
 
 with open(BRUNO_PATH, "r", encoding="utf-8") as f:
@@ -19,6 +22,7 @@ with open(BRUNO_PATH, "r", encoding="utf-8") as f:
 
 
 assertion_failures = {}
+expected_test_keys = []
 
 
 for iteration in bruno_data:
@@ -36,13 +40,15 @@ for iteration in bruno_data:
 
         test_key = match.group(1)
 
+        expected_test_keys.append(
+            test_key
+        )
+
         assertions = (
             result.get("assertionResults")
             or []
         )
 
-        # Treat both assertion failures and assertion errors
-        # as failed regression results.
         failed = [
             assertion
             for assertion in assertions
@@ -50,6 +56,56 @@ for iteration in bruno_data:
         ]
 
         assertion_failures[test_key] = failed
+
+
+# --------------------------------------------------
+# Validate Bruno JSON mappings before touching JUnit
+# --------------------------------------------------
+
+if not expected_test_keys:
+    raise SystemExit(
+        "ERROR: No Jira/Xray test keys "
+        "were found in bruno-results.json"
+    )
+
+
+expected_duplicates = sorted(
+    {
+        key
+        for key in expected_test_keys
+        if expected_test_keys.count(key) > 1
+    }
+)
+
+
+if expected_duplicates:
+    raise SystemExit(
+        "ERROR: Duplicate Jira/Xray keys "
+        "found in Bruno results: "
+        f"{', '.join(expected_duplicates)}"
+    )
+
+
+expected_test_keys = sorted(
+    set(expected_test_keys)
+)
+
+
+expected_count = len(
+    expected_test_keys
+)
+
+
+print("")
+print(
+    f"Expected Jira/Xray tests from Bruno JSON: "
+    f"{expected_count}"
+)
+
+print(
+    "Expected Jira/Xray keys: "
+    f"{', '.join(expected_test_keys)}"
+)
 
 
 # --------------------------------------------------
@@ -73,7 +129,10 @@ for testsuite in list(root.findall("testsuite")):
         testsuite.findall("testcase")
     ):
 
-        name = testcase.get("name", "")
+        name = testcase.get(
+            "name",
+            ""
+        )
 
         match = re.search(
             r"\b(CUTECH-\d+)\b",
@@ -83,14 +142,17 @@ for testsuite in list(root.findall("testsuite")):
         # --------------------------------------------------
         # Remove Bruno declarative assertion JUnit rows.
         #
-        # Only the Jira/Xray mapping testcase should remain
-        # for each Bruno request.
+        # Only Jira/Xray mapping testcases remain.
         # --------------------------------------------------
 
         if not match:
-            testsuite.remove(testcase)
+            testsuite.remove(
+                testcase
+            )
+
             removed += 1
             continue
+
 
         test_key = match.group(1)
 
@@ -103,7 +165,9 @@ for testsuite in list(root.findall("testsuite")):
             "properties"
         )
 
+
         if properties is None:
+
             properties = ET.Element(
                 "properties"
             )
@@ -117,6 +181,7 @@ for testsuite in list(root.findall("testsuite")):
         existing_property = properties.find(
             "./property[@name='test_key']"
         )
+
 
         if existing_property is None:
 
@@ -144,10 +209,9 @@ for testsuite in list(root.findall("testsuite")):
 
 
         # --------------------------------------------------
-        # Remove any existing Bruno mapping-test status.
+        # Remove existing mapping test failure/error.
         #
-        # runtime.assertions / bruno-results.json are the
-        # source of truth for regression PASS/FAIL.
+        # Declarative assertions are the source of truth.
         # --------------------------------------------------
 
         existing_failure = testcase.find(
@@ -171,7 +235,7 @@ for testsuite in list(root.findall("testsuite")):
 
 
         # --------------------------------------------------
-        # Apply result from THIS request's declarative
+        # Apply status from THIS request's declarative
         # assertions.
         # --------------------------------------------------
 
@@ -198,8 +262,8 @@ for testsuite in list(root.findall("testsuite")):
                 )
 
 
-                # Preserve falsey expected values such as
-                # 0, False and "".
+                # Preserve falsey values:
+                # 0, False, ""
                 rhs = None
 
                 for field in (
@@ -258,10 +322,6 @@ for testsuite in list(root.findall("testsuite")):
                 )
 
 
-            # --------------------------------------------------
-            # Mark the Jira/Xray mapping testcase as FAILED
-            # --------------------------------------------------
-
             failure = ET.SubElement(
                 testcase,
                 "failure"
@@ -286,7 +346,6 @@ for testsuite in list(root.findall("testsuite")):
                 "assertion(s)"
             )
 
-
         else:
 
             print(
@@ -303,8 +362,7 @@ for testsuite in list(root.findall("testsuite")):
 
 
     # --------------------------------------------------
-    # Recalculate testsuite counts after removing the
-    # Bruno assertion-generated JUnit rows.
+    # Recalculate testsuite counts
     # --------------------------------------------------
 
     remaining = list(
@@ -312,9 +370,10 @@ for testsuite in list(root.findall("testsuite")):
     )
 
 
-    # Remove empty suites.
     if not remaining:
-        root.remove(testsuite)
+        root.remove(
+            testsuite
+        )
         continue
 
 
@@ -364,7 +423,7 @@ for testsuite in list(root.findall("testsuite")):
 
 
 # --------------------------------------------------
-# Basic validation
+# Validate final Xray-ready JUnit
 # --------------------------------------------------
 
 if kept == 0:
@@ -374,15 +433,12 @@ if kept == 0:
     )
 
 
-# --------------------------------------------------
-# Validate every remaining testcase has a valid
-# Xray test_key.
-# --------------------------------------------------
-
-test_keys = []
+actual_test_keys = []
 
 
-for testsuite in root.findall("testsuite"):
+for testsuite in root.findall(
+    "testsuite"
+):
 
     for testcase in testsuite.findall(
         "testcase"
@@ -443,31 +499,80 @@ for testsuite in root.findall("testsuite"):
             )
 
 
-        test_keys.append(
+        actual_test_keys.append(
             test_key
         )
 
 
 # --------------------------------------------------
-# Detect duplicate Jira/Xray test keys.
-#
-# Two Bruno requests must never map to the same
-# Xray Test issue.
+# Detect duplicate keys in final JUnit
 # --------------------------------------------------
 
-duplicates = sorted(
+actual_duplicates = sorted(
     {
         key
-        for key in test_keys
-        if test_keys.count(key) > 1
+        for key in actual_test_keys
+        if actual_test_keys.count(key) > 1
     }
 )
 
 
-if duplicates:
+if actual_duplicates:
     raise SystemExit(
         "ERROR: Duplicate Xray test keys "
-        f"detected: {', '.join(duplicates)}"
+        "in filtered JUnit: "
+        f"{', '.join(actual_duplicates)}"
+    )
+
+
+actual_test_keys = sorted(
+    set(actual_test_keys)
+)
+
+
+actual_count = len(
+    actual_test_keys
+)
+
+
+# --------------------------------------------------
+# Compare Bruno JSON against filtered JUnit
+# --------------------------------------------------
+
+missing_from_junit = sorted(
+    set(expected_test_keys)
+    - set(actual_test_keys)
+)
+
+
+unexpected_in_junit = sorted(
+    set(actual_test_keys)
+    - set(expected_test_keys)
+)
+
+
+if missing_from_junit:
+    raise SystemExit(
+        "ERROR: Jira/Xray tests were present "
+        "in Bruno JSON but missing from "
+        "filtered JUnit: "
+        f"{', '.join(missing_from_junit)}"
+    )
+
+
+if unexpected_in_junit:
+    raise SystemExit(
+        "ERROR: Filtered JUnit contains "
+        "unexpected Jira/Xray tests: "
+        f"{', '.join(unexpected_in_junit)}"
+    )
+
+
+if actual_count != expected_count:
+    raise SystemExit(
+        "ERROR: Jira/Xray testcase count "
+        f"mismatch. Expected {expected_count}, "
+        f"found {actual_count}"
     )
 
 
@@ -477,31 +582,18 @@ if duplicates:
 
 print("")
 print(
-    f"Validated Xray testcases: "
-    f"{len(test_keys)}"
+    f"Expected Xray testcases: "
+    f"{expected_count}"
+)
+
+print(
+    f"Filtered Xray testcases: "
+    f"{actual_count}"
 )
 
 print(
     "All Xray test_key mappings "
-    "are valid and unique."
-)
-
-
-# --------------------------------------------------
-# Write dynamic testcase count for GitHub Actions
-# --------------------------------------------------
-
-with open(
-    "xray-testcase-count.txt",
-    "w",
-    encoding="utf-8"
-) as f:
-    f.write(str(len(test_keys)))
-
-
-print(
-    f"Expected Xray testcase count: "
-    f"{len(test_keys)}"
+    "are valid, unique and complete."
 )
 
 
@@ -522,7 +614,8 @@ tree.write(
 
 print("")
 print(
-    f"Xray testcases kept: {kept}"
+    f"Xray testcases kept: "
+    f"{kept}"
 )
 
 print(

@@ -322,7 +322,6 @@ jobs:
         env:
           XRAY_TOKEN: ${{ env.XRAY_TOKEN }}
           XRAY_PROJECT_KEY: ${{ secrets.XRAY_PROJECT_KEY }}
-
         run: |
           set +e
 
@@ -344,6 +343,23 @@ jobs:
           fi
 
           echo "Project: $XRAY_PROJECT_KEY"
+
+          # --------------------------------------------------
+          # NEW - Final validation before importing to Xray
+          # --------------------------------------------------
+
+          TESTCASE_COUNT=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
+
+          echo ""
+          echo "=== Xray Import Validation ==="
+          echo "Xray testcases being imported: $TESTCASE_COUNT"
+
+          if [ "$TESTCASE_COUNT" -eq 0 ]; then
+            echo "ERROR: No Xray testcases found in test-results.xml"
+            exit 1
+          fi
+
+          echo "JUnit validation passed."
 
           # --------------------------------------------------
           # Import JUnit results into Xray
@@ -372,7 +388,6 @@ jobs:
             echo "ERROR: Xray JUnit import failed"
             exit 1
           fi
-       
 
           # --------------------------------------------------
           # Save values for Step 12
@@ -383,7 +398,6 @@ jobs:
 
           echo "XRAY_EXECUTION_KEY=$XRAY_EXECUTION_KEY" >> "$GITHUB_OUTPUT"
           echo "XRAY_EXECUTION_ID=$XRAY_EXECUTION_ID" >> "$GITHUB_OUTPUT"
-
 
           echo ""
           echo "=== Xray import result ==="
@@ -397,10 +411,6 @@ jobs:
           else
             echo "SUCCESS: Xray Test Execution created/updated: $XRAY_EXECUTION_KEY"
           fi
-
-
-      
-
 
 
       
