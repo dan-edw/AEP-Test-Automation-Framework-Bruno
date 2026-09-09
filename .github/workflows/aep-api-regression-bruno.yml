@@ -238,21 +238,24 @@ jobs:
       - name: Prepare JUnit for Xray
         shell: bash
         run: |
-          python3 scripts/xray-junit-filter.py
+          python3 bruno/scripts/xray-junit-filter.py
 
           TESTCASE_COUNT=$(grep -o '<testcase ' test-results.xml | wc -l | tr -d ' ' || true)
+          EXPECTED_COUNT=$(cat xray-testcase-count.txt)
 
           echo ""
           echo "Filtered Xray testcase count: $TESTCASE_COUNT"
+          echo "Expected Xray testcase count: $EXPECTED_COUNT"
 
-          if [ "$TESTCASE_COUNT" -ne 5 ]; then
-            echo "ERROR: Expected exactly 5 Xray testcases, found $TESTCASE_COUNT"
+          if [ "$TESTCASE_COUNT" -ne "$EXPECTED_COUNT" ]; then
+            echo "ERROR: Expected $EXPECTED_COUNT Xray testcases, found $TESTCASE_COUNT"
             exit 1
           fi
 
           echo ""
           echo "=== Xray-ready JUnit ==="
           cat test-results.xml
+
 
 
 
