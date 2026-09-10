@@ -1,0 +1,48 @@
+info:
+  name: CUTECH-4192 - List audit events
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: https://platform.adobe.io/data/foundation/audit/events
+  headers:
+    - name: Accept
+      value: application/vnd.adobe.xed-id+json
+    - name: Content-Type
+      value: application/json
+    - name: x-api-key
+      value: "{{AEP_CLIENT_ID}}"
+    - name: x-gw-ims-org-id
+      value: "{{AEP_IMS_ORG}}"
+    - name: x-sandbox-name
+      value: "{{AEP_SANDBOX_NAME}}"
+  params:
+    - name: BEHAVIOR_ID
+      value: "{{BEHAVIOR_ID}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
+    - expression: res.body
+      operator: isJson
+
+  scripts:
+  - type: tests
+    code: |-
+      test("CUTECH-4192", function () {
+        expect(true).to.equal(true);
+      });
+
+
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
