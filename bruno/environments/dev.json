@@ -32,6 +32,11 @@
       "enabled": true
     },
     {
+      "name": "BEHAVIOR_ID",
+      "value": "_xdm.data.record",
+      "enabled": true
+    },
+    {
       "name": "IMS",
       "value": "ims-na1.adobelogin.com",
       "enabled": true
