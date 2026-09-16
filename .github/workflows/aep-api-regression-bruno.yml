@@ -319,7 +319,6 @@ jobs:
         shell: bash
         env:
           XRAY_TOKEN: ${{ env.XRAY_TOKEN }}
-          XRAY_PROJECT_KEY: ${{ secrets.XRAY_PROJECT_KEY }}
         run: |
           set +e
 
@@ -330,17 +329,10 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$XRAY_PROJECT_KEY" ]; then
-            echo "ERROR: XRAY_PROJECT_KEY is empty"
-            exit 1
-          fi
-
           if [ ! -f "test-results.xml" ]; then
             echo "ERROR: test-results.xml does not exist"
             exit 1
           fi
-
-          echo "Project: $XRAY_PROJECT_KEY"
 
           # --------------------------------------------------
           # NEW - Final validation before importing to Xray
@@ -366,7 +358,7 @@ jobs:
           echo ""
           echo "=== Importing JUnit results into Xray ==="
 
-          XRAY_IMPORT_URL="https://xray.cloud.getxray.app/api/v2/import/execution/junit?projectKey=${XRAY_PROJECT_KEY}"
+          XRAY_IMPORT_URL="https://xray.cloud.getxray.app/api/v2/import/execution/junit?projectKey=CUTECH"
 
           HTTP_CODE=$(curl -s \
             -o xray-import-response.json \
