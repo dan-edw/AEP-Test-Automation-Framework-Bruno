@@ -20,7 +20,7 @@ http:
  
 params:
     - name: DATASET_ID
-      value: "{{DATASET_ID}}"
+      value: "6a76a22597f16928e600d577"
       type: path
 auth: inherit
 
