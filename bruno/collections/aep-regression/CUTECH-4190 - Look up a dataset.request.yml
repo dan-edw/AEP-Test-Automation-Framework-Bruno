@@ -8,7 +8,7 @@ http:
   url: https://platform.adobe.io/data/foundation/catalog/dataSets/:DATASET_ID
   headers:
     - name: Accept
-      value: application/vnd.adobe.xed-id+json
+      value: application/json
     - name: Content-Type
       value: application/json
     - name: x-api-key
