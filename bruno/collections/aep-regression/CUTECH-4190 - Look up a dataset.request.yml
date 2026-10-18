@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/catalog/dataSets/:DATASET_ID
+  url: https://platform.adobe.io/data/foundation/catalog/dataSets
   headers:
     - name: Accept
       value: application/json
