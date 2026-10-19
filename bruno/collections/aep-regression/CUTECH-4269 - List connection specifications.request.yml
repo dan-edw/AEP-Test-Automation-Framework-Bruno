@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/flowservice/connectionSpecs?property={{property}}
+  url: https://platform.adobe.io/data/foundation/flowservice/connectionSpecs
   headers:
     - name: Accept
       value: application/json
