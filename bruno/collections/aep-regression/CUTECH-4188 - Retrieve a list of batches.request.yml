@@ -5,11 +5,9 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/catalog/batches?status={{status}}&recordCount={{recordCount}}&failedRecordCount={{failedRecordCount}}&size={{size}}&started={{started}}&completed={{completed}}&startAfter={{startAfter}}&startBefore={{startBefore}}&endAfter={{endAfter}}&endBefore={{endBefore}}&batch={{batch}}&externalId={{externalId}}&connection={{connection}}&connector={{connector}}&dataSet={{dataSet}}
+  url: https://platform.adobe.io/data/foundation/catalog/batches?limit=5
   headers:
     - name: Accept
-      value: application/json
-    - name: Content-Type
       value: application/json
     - name: x-api-key
       value: "{{AEP_CLIENT_ID}}"
@@ -17,15 +15,7 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
-  params:
-    - name: CONTAINER_ID
-      value: "{{CONTAINER_ID}}"
-      type: path
-    - name: FIELD_GROUP_ID
-      value: "{{FIELD_GROUP_ID}}"
-      type: path
-  auth: inherit
-
+  
 runtime:
   assertions:
     - expression: res.status
