@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/dataset/datasets/:DATASET_ID/labels
+  url: https://platform.adobe.io/data/foundation/dataset/datasets/labels
   headers:
     - name: Accept
       value: application/json
