@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4194 - Retrieve a behaviour
   type: http
-  seq: 4
+  seq: 13
 
 http:
   method: GET

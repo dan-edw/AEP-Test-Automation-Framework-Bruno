@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4191 - Retrieve a list of datasets
   type: http
-  seq: 4
+  seq: 10
 
 http:
   method: GET

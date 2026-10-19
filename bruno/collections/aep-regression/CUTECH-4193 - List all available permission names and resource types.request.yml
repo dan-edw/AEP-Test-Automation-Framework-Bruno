@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4193 - List all available permission names and resource types
   type: http
-  seq: 4
+  seq: 12
 
 http:
   method: GET

@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4189 - Look up a batch
   type: http
-  seq: 5
+  seq: 8
 
 http:
   method: GET

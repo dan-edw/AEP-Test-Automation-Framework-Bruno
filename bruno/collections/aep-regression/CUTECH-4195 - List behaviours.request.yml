@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4195 - List behaviours
   type: http
-  seq: 2
+  seq: 14
 
 http:
   method: GET

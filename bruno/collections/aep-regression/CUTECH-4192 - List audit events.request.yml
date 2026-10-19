@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4192 - List audit events
   type: http
-  seq: 4
+  seq: 11
 
 http:
   method: GET
