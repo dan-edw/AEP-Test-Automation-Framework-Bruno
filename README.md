@@ -1,4 +1,4 @@
-# AEP API Regression Automation --- Bruno + Xray
+# API Regression Automation --- Bruno + Xray
 
 ## Overview
 
