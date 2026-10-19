@@ -1,7 +1,7 @@
 info:
   name: CUTECH-4206 - List the available mapping set functions
   type: http
-  seq: 15
+  seq: 17
 
 http:
   method: GET
