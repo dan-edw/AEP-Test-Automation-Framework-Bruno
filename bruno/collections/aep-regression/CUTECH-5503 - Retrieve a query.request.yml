@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/query/queries/:queryid
+  url: https://platform.adobe.io/data/foundation/query/queries/08de6f50-86fe-4e84-956c-1211c5dd62cd
   headers:
     - name: Accept
       value: application/json
