@@ -30,7 +30,7 @@ runtime:
   scripts:
   - type: tests
     code: |-
-      test("CUTECH-5499", function () {
+      test("CUTECH-5502", function () {
         expect(true).to.equal(true);
       });
 
