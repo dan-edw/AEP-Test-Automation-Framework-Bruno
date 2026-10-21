@@ -87,6 +87,11 @@
       "enabled": true
     },
     {
+      "name": "LABEL_NAME_CUSTOM",
+      "value": "IFL-Privacy",
+      "enabled": true
+    },
+    {
       "name": "queryid",
       "value": "fa231797-150f-4075-8f0f-f3c751c4d8ac",
       "enabled": true
