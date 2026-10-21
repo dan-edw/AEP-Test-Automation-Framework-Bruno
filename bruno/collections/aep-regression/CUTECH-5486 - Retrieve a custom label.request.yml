@@ -9,6 +9,8 @@ http:
   headers:
     - name: Accept
       value: application/json
+    - name: Content-Type
+      value: application/json
     - name: x-api-key
       value: "{{AEP_CLIENT_ID}}"
     - name: x-gw-ims-org-id
