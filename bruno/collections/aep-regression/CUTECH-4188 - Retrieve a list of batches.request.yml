@@ -28,7 +28,7 @@ runtime:
   scripts:
   - type: tests
     code: |-
-      test("CUTECH-4188 - Retrieve a list of batches", function () {
+      test("CUTECH-4188", function () {
         expect(true).to.equal(true);
       });
 

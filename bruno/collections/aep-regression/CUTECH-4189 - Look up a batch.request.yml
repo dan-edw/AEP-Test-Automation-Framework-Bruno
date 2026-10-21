@@ -33,7 +33,7 @@ runtime:
   scripts:
   - type: tests
     code: |-
-      test("CUTECH-4189 - Look up a batch", function () {
+      test("CUTECH-4189", function () {
         expect(true).to.equal(true);
       });
 
