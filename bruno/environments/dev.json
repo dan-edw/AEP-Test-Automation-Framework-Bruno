@@ -132,6 +132,21 @@
       "enabled": true
     },
     {
+      "name": "SEGMENT_ID",
+      "value": "20f53a3f-cb53-4bad-981c-2065b1aadcc5",
+      "enabled": true
+    },
+    {
+      "name": "SEGMENT_JOB_ID",
+      "value": "f04cda22-2f67-4e9f-a43e-05223a1a8127",
+      "enabled": true
+    },
+    {
+      "name": "SCHEDULE_ID",
+      "value": "47085d93-43b1-4148-9506-9d11327e976c",
+      "enabled": true
+    },
+    {
       "name": "DATASET_ID",
       "value": "6a7902a4137e23564b07f203",
       "enabled": true

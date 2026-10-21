@@ -131,6 +131,13 @@ jobs:
       # 6. Run Bruno Collection
       # ----------------------------------------
 
+      - name: Validate Bruno Xray test keys
+        shell: bash
+        run: |
+          echo "Checking Bruno request files for duplicate Jira keys..."
+          python3 scripts/validate-bruno-keys.py
+
+
       - name: Run AEP API Regression
         id: bruno
         shell: bash
