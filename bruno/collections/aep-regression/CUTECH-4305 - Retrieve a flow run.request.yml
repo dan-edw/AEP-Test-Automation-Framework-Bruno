@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/flowservice/runs/5c56db1b-c082-4b25-9b54-27943f69f388
+  url: https://platform.adobe.io/data/foundation/flowservice/runs/:RUN_ID
   headers:
     - name: Accept
       value: application/json
@@ -17,6 +17,11 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
+
+params:
+  - name: RUN_ID
+    value: "{{RUN_ID}}"
+    type: path
 
 runtime:
   assertions:

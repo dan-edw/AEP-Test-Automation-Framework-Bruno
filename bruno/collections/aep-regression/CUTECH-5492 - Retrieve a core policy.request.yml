@@ -20,7 +20,7 @@ http:
   
   params:
     - name: POLICY_ID
-      value: "corepolicy_0015"
+      value: "{{POLICY_ID}}"
       type: path
 
 runtime:

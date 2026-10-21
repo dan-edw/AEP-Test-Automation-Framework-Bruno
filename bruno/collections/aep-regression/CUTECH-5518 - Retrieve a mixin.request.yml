@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/schemaregistry/tenant/mixins/_ioof.mixins.cddfba38aa4a11062b4266c9d7ddb4b91a8cb8225eeb8034
+  url: https://platform.adobe.io/data/foundation/schemaregistry/:CONTAINER_ID/mixins/:MIXIN_ID
   headers:
     - name: Accept
       value: application/vnd.adobe.xed-id+json
@@ -17,7 +17,13 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
- 
+params:
+  - name: CONTAINER_ID
+    value: "{{CONTAINER_ID}}"
+    type: path
+  - name: MIXIN_ID
+    value: "{{MIXIN_ID}}"
+    type: path
 runtime:
   assertions:
     - expression: res.status

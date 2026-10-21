@@ -18,7 +18,7 @@ http:
   
   params:
     - name: LABEL_NAME
-      value: "Third-Party"
+      value: "{{LABEL_NAME}}"
       type: path
 
 runtime:

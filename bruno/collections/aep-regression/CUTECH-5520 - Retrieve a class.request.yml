@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/schemaregistry/tenant/classes/_ioof.classes.7ed7956c94e208579d481ca07420966d5913efb06f35e523
+  url: https://platform.adobe.io/data/foundation/schemaregistry/:CONTAINER_ID/classes/:CLASS_ID
   headers:
     - name: Accept
       value: application/vnd.adobe.xed-id+json
@@ -17,7 +17,13 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
- 
+params:
+  - name: CONTAINER_ID
+    value: "{{CONTAINER_ID}}"
+    type: path
+  - name: CLASS_ID
+    value: "{{CLASS_ID}}"
+    type: path
 runtime:
   assertions:
     - expression: res.status

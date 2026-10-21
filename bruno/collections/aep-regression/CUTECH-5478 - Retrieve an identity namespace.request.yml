@@ -20,7 +20,7 @@ http:
       value: "{{AEP_IMS_ORG}}"
       type: path
     - name: ID
-      value: "1957"
+      value: "{{ID}}"
       type: path
 runtime:
   assertions:

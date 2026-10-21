@@ -42,6 +42,76 @@
       "enabled": true
     },
     {
+      "name": "CONNECTION_SPEC_ID",
+      "value": "60da360a-e469-11e9-a359-2a2ae2dbcce4",
+      "enabled": true
+    },
+    {
+      "name": "CONNECTION_ID",
+      "value": "6d3327f7-50c0-46d2-96fc-a80e5c7a3c67",
+      "enabled": true
+    },
+    {
+      "name": "FLOW_ID",
+      "value": "5dac6e40-2b18-459c-941c-e46a469aa76a",
+      "enabled": true
+    },
+    {
+      "name": "FLOW_SPEC_ID",
+      "value": "c6460858-dc01-37c5-b8eb-779ca0973306",
+      "enabled": true
+    },
+    {
+      "name": "RUN_ID",
+      "value": "5c56db1b-c082-4b25-9b54-27943f69f388",
+      "enabled": true
+    },
+    {
+      "name": "ID",
+      "value": "20914",
+      "enabled": true
+    },
+    {
+      "name": "POLICY_ID",
+      "value": "corepolicy_0015",
+      "enabled": true
+    },
+    {
+      "name": "MARKETING_ACTION_NAME",
+      "value": "smsTargeting",
+      "enabled": true
+    },
+    {
+      "name": "LABEL_NAME",
+      "value": "Third-Party",
+      "enabled": true
+    },
+    {
+      "name": "queryid",
+      "value": "fa231797-150f-4075-8f0f-f3c751c4d8ac",
+      "enabled": true
+    },
+    {
+      "name": "queryTemplateId",
+      "value": "90e6365e-f257-403a-a338-33ae01c1195e",
+      "enabled": true
+    },
+    {
+      "name": "mergePolicyId",
+      "value": "68ccd939-6b5f-447c-b922-0270e7048cd9",
+      "enabled": true
+    },
+    {
+      "name": "MIXIN_ID",
+      "value": "_ioof.mixins.cddfba38aa4a11062b4266c9d7ddb4b91a8cb8225eeb8034",
+      "enabled": true
+    },
+    {
+      "name": "CLASS_ID",
+      "value": "_ioof.classes.7ed7956c94e208579d481ca07420966d5913efb06f35e523",
+      "enabled": true
+    },
+    {
       "name": "DATASET_ID",
       "value": "6a7902a4137e23564b07f203",
       "enabled": true

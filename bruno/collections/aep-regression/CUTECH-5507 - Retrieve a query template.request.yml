@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/query/query-templates/90e6365e-f257-403a-a338-33ae01c1195e
+  url: https://platform.adobe.io/data/foundation/query/query-templates/:queryTemplateId
   headers:
     - name: Accept
       value: application/json
@@ -20,7 +20,7 @@ http:
   
 params:
   - name: queryTemplateId
-    value: "90e6365e-f257-403a-a338-33ae01c1195e"
+    value: "{{queryTemplateId}}"
     type: path
 
 runtime:

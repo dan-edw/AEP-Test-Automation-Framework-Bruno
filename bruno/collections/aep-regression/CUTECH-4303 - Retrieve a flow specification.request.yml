@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/flowservice/flowSpecs/c6460858-dc01-37c5-b8eb-779ca0973306
+  url: https://platform.adobe.io/data/foundation/flowservice/flowSpecs/:FLOW_SPEC_ID
   headers:
     - name: Accept
       value: application/json
@@ -17,6 +17,11 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
+
+params:
+  - name: FLOW_SPEC_ID
+    value: "{{FLOW_SPEC_ID}}"
+    type: path
 
 runtime:
   assertions:

@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/dataset/datasets/6a76a22597f16928e600d577/labels
+  url: https://platform.adobe.io/data/foundation/dataset/datasets/:DATASET_ID/labels
   headers:
     - name: Accept
       value: application/json
@@ -18,7 +18,7 @@ http:
  
 params:
     - name: DATASET_ID
-      value: "6a76a22597f16928e600d577"
+      value: "{{DATASET_ID}}"
       type: path
 auth: inherit
 

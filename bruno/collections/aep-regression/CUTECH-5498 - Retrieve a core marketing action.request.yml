@@ -20,7 +20,7 @@ http:
   
   params:
     - name: MARKETING_ACTION_NAME
-      value: "smsTargeting"
+      value: "{{MARKETING_ACTION_NAME}}"
       type: path
 
 runtime:

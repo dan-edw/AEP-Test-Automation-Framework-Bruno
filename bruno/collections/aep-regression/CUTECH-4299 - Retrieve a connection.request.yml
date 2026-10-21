@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/flowservice/connections/6d3327f7-50c0-46d2-96fc-a80e5c7a3c67
+  url: https://platform.adobe.io/data/foundation/flowservice/connections/:CONNECTION_ID
   headers:
     - name: Accept
       value: application/json
@@ -17,6 +17,11 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
+
+params:
+  - name: CONNECTION_ID
+    value: "{{CONNECTION_ID}}"
+    type: path
 
 runtime:
   assertions:

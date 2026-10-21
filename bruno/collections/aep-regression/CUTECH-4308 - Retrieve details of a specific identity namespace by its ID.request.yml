@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/core/idnamespace/identities/20914
+  url: https://platform.adobe.io/data/core/idnamespace/identities/:ID
   headers:
     - name: Accept
       value: application/json
@@ -15,6 +15,11 @@ http:
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
+
+params:
+  - name: ID
+    value: "{{ID}}"
+    type: path
 
 runtime:
   assertions:

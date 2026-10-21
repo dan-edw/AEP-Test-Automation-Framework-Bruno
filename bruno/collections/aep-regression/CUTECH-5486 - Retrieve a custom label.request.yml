@@ -18,7 +18,7 @@ http:
   
   params:
     - name: LABEL_NAME
-      value: "IFL-Privacy"
+      value: "{{LABEL_NAME}}"
       type: path
 
 runtime:

@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/core/ups/config/mergePolicies/68ccd939-6b5f-447c-b922-0270e7048cd9
+  url: https://platform.adobe.io/data/core/ups/config/mergePolicies/:mergePolicyId
   headers:
     - name: Accept
       value: application/json
@@ -20,7 +20,7 @@ http:
   
 params:
   - name: mergePolicyId
-    value: "68ccd939-6b5f-447c-b922-0270e7048cd9"
+    value: "{{mergePolicyId}}"
     type: path
 
 runtime:
