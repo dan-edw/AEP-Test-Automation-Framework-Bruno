@@ -17,7 +17,7 @@ http:
       value: "{{AEP_SANDBOX_NAME}}"
   params:
     - name: BATCH_ID
-      value: "AJO-6aa754a4fb0bc2ab1c311dd2-01M3XG991R8Z11BC79K5VB4T2K"
+      value: "{{BATCH_ID}}"
       type: path
   auth: inherit
 
