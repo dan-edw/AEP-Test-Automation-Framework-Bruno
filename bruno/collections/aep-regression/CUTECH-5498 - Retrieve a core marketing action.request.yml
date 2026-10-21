@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/dulepolicy/marketingActions/core/:MARKETING_ACTION_NAME
+  url: https://platform.adobe.io/data/foundation/dulepolicy/marketingActions/core/{{MARKETING_ACTION_NAME}}
   headers:
     - name: Accept
       value: application/json
@@ -18,10 +18,7 @@ http:
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
   
-  params:
-    - name: MARKETING_ACTION_NAME
-      value: "{{MARKETING_ACTION_NAME}}"
-      type: path
+auth: inherit
 
 runtime:
   assertions:

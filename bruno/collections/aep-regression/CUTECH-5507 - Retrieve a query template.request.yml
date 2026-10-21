@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/query/query-templates/:queryTemplateId
+  url: https://platform.adobe.io/data/foundation/query/query-templates/{{queryTemplateId}}
   headers:
     - name: Accept
       value: application/json
@@ -18,10 +18,7 @@ http:
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
   
-params:
-  - name: queryTemplateId
-    value: "{{queryTemplateId}}"
-    type: path
+auth: inherit
 
 runtime:
   assertions:

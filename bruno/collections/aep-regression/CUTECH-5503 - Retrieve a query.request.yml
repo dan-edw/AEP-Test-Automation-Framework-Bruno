@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/query/queries/:queryid
+  url: https://platform.adobe.io/data/foundation/query/queries/{{queryid}}
   headers:
     - name: Accept
       value: application/json
@@ -18,10 +18,7 @@ http:
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
   
-params:
-  - name: queryid
-    value: "{{queryid}}"
-    type: path
+auth: inherit
 
 runtime:
   assertions:
