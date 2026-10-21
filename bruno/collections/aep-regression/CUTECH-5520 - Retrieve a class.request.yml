@@ -5,25 +5,19 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/schemaregistry/:CONTAINER_ID/classes/:CLASS_ID
+  url: https://platform.adobe.io/data/foundation/schemaregistry/{{CONTAINER_ID}}/classes/{{CLASS_ID}}
   headers:
     - name: Accept
-      value: application/vnd.adobe.xed-id+json
-    - name: Content-Type
-      value: application/json
+      value: application/vnd.adobe.xed+json
     - name: x-api-key
       value: "{{AEP_CLIENT_ID}}"
     - name: x-gw-ims-org-id
       value: "{{AEP_IMS_ORG}}"
     - name: x-sandbox-name
       value: "{{AEP_SANDBOX_NAME}}"
-params:
-  - name: CONTAINER_ID
-    value: "{{CONTAINER_ID}}"
-    type: path
-  - name: CLASS_ID
-    value: "{{CLASS_ID}}"
-    type: path
+
+auth: inherit
+
 runtime:
   assertions:
     - expression: res.status
