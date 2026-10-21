@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: https://platform.adobe.io/data/foundation/dulepolicy/labels/custom/{{LABEL_NAME}}
+  url: https://platform.adobe.io/data/foundation/dulepolicy/labels/custom/{{LABEL_NAME_CUSTOM}}
   headers:
     - name: Accept
       value: application/json
