@@ -331,7 +331,7 @@ jobs:
 
       - name: Publish Results to Xray
         id: publish-xray
-        if: ${{ false }}
+        if: ${{ success() && steps.validate-xray-junit.outcome == 'success' }}
         shell: bash
         env:
           XRAY_TOKEN: ${{ env.XRAY_TOKEN }}
