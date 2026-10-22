@@ -7,7 +7,7 @@ COLLECTION_PATH = Path("bruno/collections/aep-regression")
 
 KEY_PATTERN = re.compile(r"CUTECH-\d+")
 TEST_PATTERN = re.compile(
-    r'\btest\s*\(\s*["\'](CUTECH-\d+)["\']'
+    r'\btest\s*\(\s*["\'](CUTECH-\d+)(?=["\'\s-])'
 )
 
 errors = []

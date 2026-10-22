@@ -261,15 +261,24 @@ jobs:
           echo "=== Xray-ready JUnit ==="
           cat test-results.xml
 
+      # ----------------------------------------
+      # 9. Validate Xray JUnit Mapping
+      # ----------------------------------------
 
+      - name: Validate Xray JUnit Mapping
+        id: validate-xray-junit
+        shell: bash
+        run: |
+          echo "Validating Xray JUnit mappings..."
+          python3 scripts/validate-xray-junit.py
+  
 
 
       # ----------------------------------------
-      # 9. Authenticate with Xray Cloud
+      # 10. Authenticate with Xray Cloud
       # ----------------------------------------
       
       - name: Authenticate with Xray Cloud
-        if: always()
         id: xray-auth
         shell: bash
         run: |
@@ -290,7 +299,7 @@ jobs:
       
       
       # ----------------------------------------
-      # 10. Check Xray JUnit file
+      # 11. Check Xray JUnit file
       # ----------------------------------------    
       
       - name: Check Xray JUnit file
@@ -317,12 +326,12 @@ jobs:
       
       
       # ----------------------------------------
-      # 11. Publish the Results to Xray
+      # 12. Publish the Results to Xray
       # ----------------------------------------
 
       - name: Publish Results to Xray
         id: publish-xray
-        if: always()
+        if: ${{ false }}
         shell: bash
         env:
           XRAY_TOKEN: ${{ env.XRAY_TOKEN }}
@@ -412,7 +421,7 @@ jobs:
 
       
       # ----------------------------------------
-      # 12. Add actual results / failure details to Xray Test Runs
+      # 13. Add actual results / failure details to Xray Test Runs
       # ----------------------------------------
 
       - name: Update Xray Test Run Results
@@ -741,7 +750,7 @@ jobs:
 
 
       # ----------------------------------------
-      # 13. Regression Summary
+      # 14. Regression Summary
       # ----------------------------------------
 
       - name: Regression Summary
@@ -828,7 +837,7 @@ jobs:
 
 
       # ----------------------------------------
-      # 14. Upload Bruno Results
+      # 15. Upload Bruno Results
       # ----------------------------------------
 
       - name: Upload Bruno Results
@@ -844,7 +853,7 @@ jobs:
 
        
       # ----------------------------------------
-      # 15. Check Bruno Results
+      # 16. Check Bruno Results
       # ----------------------------------------
 
       - name: Check Bruno Result
